@@ -86,7 +86,7 @@ input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
 endmodule
 
 
-module prechargeInstRAM;
+module testInstRAM;
 //////////////
 //Pre-charge//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ module prechargeInstRAM;
             $display("        Address   Data");
             while(!$feof(I_inFile))
                 begin
-                    #1 I_code = $fscanf(I_inFile, "%b", data); //pass read value through DataIn
+                    #1 I_code = $fscanf(I_inFile, "%b", data);
                     ramI.Mem[I_Address] = data;
                     #7 $display("%d        %b", I_Address, data);
                     #2 I_Address = I_Address + 1; 
@@ -146,7 +146,7 @@ module prechargeInstRAM;
 endmodule
 
 
-module prechargeDataRAM;
+module testDataRAM;
 //////////////
 //Pre-charge//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
