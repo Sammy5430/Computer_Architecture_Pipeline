@@ -1,3 +1,7 @@
+//FIX: Input address is always even and a multiple of for, therefore
+//the two least significant bits must be converted to 00
+//This can be done using an AND to clear those last two bits
+
 module instRAM256x8 (output reg [31:0] DataOut, input Enable, input[31:0] Address);
     reg[7:0] Mem[0:255];
     always@(Enable) 
@@ -10,6 +14,7 @@ module dataRAM256x8 (output reg [31:0] DataOut, input Enable, ReadWrite,
 input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
     reg[7:0] Mem[0:255];
     reg[31:0] temp;
+    //FIX: Declare DataIn Address, and other inputs
     always@(Enable, ReadWrite)
         if(Enable)
             if(!ReadWrite)//read
@@ -124,7 +129,7 @@ module testInstRAM;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////
-//Test//
+//Test// FIX: print out words, not bytes
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     initial
         begin
@@ -278,11 +283,11 @@ module testDataRAM;
             D_Enable = 1'b0;
             D_ReadWrite = 1'b0;
             D_Mode = 2'b10;
-            D_Address = 32'b100;
+            D_Address = 32'b00;
                 #5 D_Enable = 1'b1;
                 #5 D_Enable = 1'b0;
                 $display("%d        %b     %h        %h", D_Address, D_ReadWrite, D_DataIn, D_DataOut);
-            D_Address = 32'b1000;
+            D_Address = 32'b100;
                 #5 D_Enable = 1'b1;
                 #5 D_Enable = 1'b0;
                 $display("%d        %b     %h        %h", D_Address, D_ReadWrite, D_DataIn, D_DataOut);
