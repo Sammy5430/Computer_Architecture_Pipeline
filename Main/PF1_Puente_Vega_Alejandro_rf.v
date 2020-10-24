@@ -161,8 +161,8 @@ always@(pc, n, posedge clk)
     pc4 = pc + n;
 endmodule
 
-//Mux for PC
-module mux2x1 (output reg O, input s,  input [31:0] A, B );
+//Mux for PC------------------ arreglar en el codigo original
+module mux2x1 (output reg [31:0] O, input s,  input [31:0] A, B );
 always @(s, A, B)
     case(s)
       1'b0:  O = A;
@@ -202,6 +202,9 @@ registers R11 (data[11], datain, enables[15-11], clk, clr);
 registers R12 (data[12], datain, enables[15-12], clk, clr);
 registers R13 (data[13], datain, enables[15-13], clk, clr);
 registers R14 (data[14], datain, enables[15-14], clk, clr);
+
+
+//
 
 registers R15 (data[15], datain, enables[15-15],clk, clr);// needs to be pc? must find a way to add 4 but also have the data that is passing through
 
@@ -351,15 +354,15 @@ end
 // // $display("this is register info decoder data: %b", register_file.ddata);
 // //$display("this is register clk info: %b", register_file);
 initial begin
-$display("R");
-$display("Input Data: %h", datain);
-$display("DecoderDataSelector %b", ddata);
-$display("select1M: %b", s1);
-$display("select2M: %b", s2);
-$display("select3M: %b", s3);
-$monitor("Output1: %h", O1);
-$monitor("Output2 %h", O2);
-$monitor("Output3 %h", O3);
+// $display("R");
+// $display("Input Data: %h", datain);
+// $display("DecoderDataSelector %b", ddata);
+// $display("select1M: %b", s1);
+// $display("select2M: %b", s2);
+// $display("select3M: %b", s3);
+// $monitor("Output1: %h", O1);
+// $monitor("Output2 %h", O2);
+// $monitor("Output3 %h", O3);
 
 // $display("");
 // $display("R2");
@@ -433,3 +436,83 @@ endmodule
 // $display("Out: %h, Ins: %b, data: %h ", O, s, A);
 // end
 // endmodule
+
+
+module Flagregister(output reg [3:0] out, input [3:0] in, input lde);
+//lde = loadEnable
+
+always@ (lde)
+begin
+  if (lde) out = in;
+
+$display("Input: %h", in);
+$display("output: %h", out);
+
+end
+endmodule
+
+//testing register woorks!!!
+// module testingflagresgister;
+//   wire [3:0] out ;
+//   reg [3:0] in;
+//   reg lde;
+  
+//   Flagregister testing_flag (out, in, lde);
+  
+// initial begin
+
+//  // repeat (2) #1 clk = ~clk;
+
+  
+//   in = 4'b0001;
+  
+//   lde = 1'b1;
+ 
+//   #1;
+   
+//   $display("Input: %h", in);
+//   $display("output: %h", out);
+
+//   $display("Load: %h", lde);
+
+// end
+// endmodule
+
+
+module mux4to1 (output reg [31:0] O ,input [1:0] s, input [31:0] A, B, C , D);
+
+always @(s, A, B, C , D)
+
+case (s)
+
+      2'b00: O = A;
+      2'b01: O = B;
+      2'b10: O = C;
+      2'b11: O = D;
+
+endcase
+endmodule
+
+
+module mux2x1_7 (output reg [6:0] O, input s,  input [6:0] A, B );
+always @(s, A, B)
+    case(s)
+      1'b0:  O = A;
+      1'b1:  O = B;
+endcase
+endmodule
+
+module mux2x1_1 (output reg O, input s,  input A, B );
+always @(s, A, B)
+    case(s)
+      1'b0:  O = A;
+      1'b1:  O = B;
+endcase
+endmodule
+
+module pipeline_registers();
+
+
+
+endmodule
+//son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
