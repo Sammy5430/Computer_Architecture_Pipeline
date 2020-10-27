@@ -1,6 +1,6 @@
-module cpu (output reg[3:0] OP, output reg [1:0] Sm, Mm, output reg ID_load_instr, ID_B, ID_RF, ID_RW, ID_Data, ID_shift_imm, ID_RF_clear, input [31:0] IR); 
+module cpu (output reg[3:0] OP, output reg [1:0] Sm, Mm, output reg ID_load_instr, ID_B, ID_RF, ID_RW, ID_Data, ID_shift_imm, ID_RF_clear, input [31:0] IR, input Cond); 
 	always @ (IR) 
-		if (IR[31:0] == 32'h00000000)//NOP
+		if (IR[31:0] == 32'h00000000||!Cond)//NOP
 			begin
 				OP <= 4'b0000;
 				Sm <= 2'b00;
