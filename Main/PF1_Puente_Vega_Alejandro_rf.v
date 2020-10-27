@@ -441,7 +441,7 @@ endmodule
 // endmodule
 
 
-module Flagregister(output reg [31:0] CC_out, output reg C_in, input [31:0] CC_in, input s);
+module Flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s);
 //lde = loadEnable
 
 always@ (s)
@@ -516,34 +516,51 @@ endcase
 endmodule
 
 //IF/ID register
-// module pipeline_registers_1(output reg [31:0] PCAdressOut, PCNextout output reg LinkOut, input clk, LD, LinkIn input [31:0] InInstructionMEM, InPCAdress, INNextPC);
-// wire [4:0] toConditionH;
-// wire [23:0] toSignextender;
-// wire bitToCondition;
-// wire [3:0] RA;
-// wire [3:0] RB;
-// wire [3:0] RD;
-// wire [11:0] directTonextregister;
-// wire oneBitToNextRegister;
-// wire [31:0] toCPU;
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg LinkOut, input clk, LD, LinkIn , input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+reg [4:0] toConditionH;
+reg [23:0] toSignextender;
+reg bitToCondition;
+reg [3:0] RA;
+reg [3:0] RB;
+reg [3:0] RD;
+reg [11:0] directTonextregister;
+reg oneBitToNextRegister;
+//wire [31:0] toCPU;
+reg [31:0] temp;
 
-// reg [31:0] temp;
-// always @ (posedge clk, LD);
-//  PCNextout = INNextPC;
-//  PCAdressOut = InPCAdress;
-//  LinkOut = LinkOut
+always @ (posedge clk, LD)
+begin
+ PCNextout = INNextPC;
+ PCAdressOut = InPCAdress;
+ LinkOut = LinkIn;
 
-//  temp = InInstructionMEM & 32'b11111000000000000000000000000000
-//  toConditionH = temp >> 28
+ temp = InInstructionMEM & 32'b11111000000000000000000000000000;
+ toConditionH = temp >> 28;
 
-//  temp = InInstructionMEM & 32'b
+ temp = InInstructionMEM & 32'b00000000111111111111111111111111;
+ toSignextender = temp;
+
+ temp = InInstructionMEM & 32'b00000001000000000000000000000000;
+ bitToCondition = temp >> 24;
+
+ temp = InInstructionMEM & 32'b00000000000011110000000000000000;
+ RA = temp >> 16;
+
+ temp = InInstructionMEM & 32'b00000000000000000000000000001111;
+ RB = temp;
+
+ temp = InInstructionMEM & 32'b00000000000000001111000000000000;
+ RD = temp >> 12;
+
+ temp = InInstructionMEM & 32'b00000000000000000000111111111111;
+ directTonextregister = temp;
+
+ temp = InInstructionMEM & 32'b00000000000100000000000000000000;
+ oneBitToNextRegister = temp >> 20;
 
 
-
-
-
-
-//  endmodule
+end
+ endmodule
 //son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
 
 // //ID/EX register
