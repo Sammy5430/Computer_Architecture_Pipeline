@@ -446,7 +446,9 @@ module Flagregister(output reg [31:0] CC_out, output reg C_in, input [31:0] CC_i
 
 always@ (s)
 begin
-  if (s) CC_out = CC_in;
+  if (s) 
+  CC_out = CC_in;
+  C_in <= CC_in;
 
 $display("Input: %h", CC_in);
 $display("output: %h", CC_out);
@@ -530,6 +532,9 @@ endmodule
 //  PCNextout = INNextPC;
 //  PCAdressOut = InPCAdress;
 //  LinkOut = LinkOut
+
+//  temp = InInstructionMEM & 32'b11111000000000000000000000000000
+//  toConditionH = temp >> 28
 
 //  temp = InInstructionMEM & 32'b
 

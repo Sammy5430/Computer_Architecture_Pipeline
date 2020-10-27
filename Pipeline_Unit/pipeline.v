@@ -83,6 +83,19 @@ module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC
     mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 endmodule
 
+module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s);
+    always@ (s)
+        begin
+            if (s) 
+                begin
+                CC_out = CC_in;
+                C_in <= CC_in;
+                end
+            $display("Input: %h", CC_in);
+            $display("output: %h", CC_out);
+        end
+endmodule
+
 module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
     reg[7:0] Mem[0:255];
     reg[31:0] temp;
@@ -329,7 +342,7 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
 		endcase
 endmodule
 
-module alu (output reg [31:0] O, output reg [3:0] Flags, CPSR, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out, S);
+module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out);
     // A = Rn
     // B = shifter_operand
     // O = Rd
@@ -337,122 +350,116 @@ module alu (output reg [31:0] O, output reg [3:0] Flags, CPSR, input [31:0] A, B
     // Flag[1] = C(Carry)
     // Flag[2] = Z(Zero)
     // Flag[3] = N(Negative)
-	// Flags ARM Manual Section A2.5.2
+	// CondCode ARM Manual Section A2.5.2
     always@(OP, A, B)
         case(OP)
-                                                        //                                   Status Flags  ARM Manual
+                                                        //                                   Status CondCode  ARM Manual
                                                         //                                    N  Z  C  V    Section
             4'b0000: begin                             // AND - Logical AND                  *  *  /  -    A4.1.4
                       O = A & B;                        // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b0001: begin                             // EOR - Logical Exclusive OR         *  *  /  -    A4.1.18
                       O = A ^ B;                        // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b0010: begin                             // SUB - Subtract                     *  *  *  *    A4.1.106
-                      {Flags[1], O} = A - B;            // Save Subtraction, C Flag Update
-                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                      {CondCode[1], O} = A - B;            // Save Subtraction, C Flag Update
+                      CondCode[0] = (A[31] != B[31])       // V Flag Update
                                   && (O[31] == B[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b0011: begin                             // RSB - Reverse Subtract             *  *  *  *    A4.1.60
-                      {Flags[1], O} = B - A;            // Save Subtraction, C Flag Update
-                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                      {CondCode[1], O} = B - A;            // Save Subtraction, C Flag Update
+                      CondCode[0] = (A[31] != B[31])       // V Flag Update
                                   && (O[31] == A[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b0100: begin                             // ADD - Addition                     *  *  *  *    A4.1.3
-                      {Flags[1], O} = A + B;            // Save Addition, C Flag Update
-                      Flags[0] = (A[31] == B[31])       // V Flag Update
+                      {CondCode[1], O} = A + B;            // Save Addition, C Flag Update
+                      CondCode[0] = (A[31] == B[31])       // V Flag Update
                                 && (A[31] != O[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b0101: begin                             // ADC - Addition with Carry          *  *  *  *    A4.1.2
-                      {Flags[1], O} = A + B + C_in;     // Save Addition, C Flag Update
-                      Flags[0] = ((A[31] == B[31])      // V Flag Update
+                      {CondCode[1], O} = A + B + C_in;     // Save Addition, C Flag Update
+                      CondCode[0] = ((A[31] == B[31])      // V Flag Update
                                 && A[31] != O[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b0110: begin                             // SBC - Subtract with Carry          *  *  *  *    A4.1.65
-                      {Flags[1], O} = A - B - ~C_in;    // Save Subtraction, C Flag Update
-                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                      {CondCode[1], O} = A - B - ~C_in;    // Save Subtraction, C Flag Update
+                      CondCode[0] = (A[31] != B[31])       // V Flag Update
                                   && (O[31] == B[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b0111: begin                             // RSC - Reverse Subtract with Carry  *  *  *  *    A4.1.61
-                      {Flags[1], O} = B - A - ~C_in;    // Save Subtraction, C Flag Update
-                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                      {CondCode[1], O} = B - A - ~C_in;    // Save Subtraction, C Flag Update
+                      CondCode[0] = (A[31] != B[31])       // V Flag Update
                                   && (O[31] == A[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b1000: begin                             // TST - Test             (AND)       *  *  /  -    A4.1.117
                       O = A & B;
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b1001: begin                             // TEQ - Test Equivalence (EOR)       *  *  /  -    A4.1.116
                       O = A ^ B;
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b1010: begin                             // CMP - Compare          (SUB)       *  *  *  *    A4.1.15
-                      {Flags[1], O} = A - B;            // Save Subtraction, C Flag Update
-                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                      {CondCode[1], O} = A - B;            // Save Subtraction, C Flag Update
+                      CondCode[0] = (A[31] != B[31])       // V Flag Update
                                   && (O[31] == B[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b1011: begin                             // CMN - Compare Negated  (ADD)       *  *  *  *    A4.1.14
-                      {Flags[1], O} = A + B;            // Save Addition, C Flag Update
-                      Flags[0] = (A[31] == B[31])       // V Flag Update
+                      {CondCode[1], O} = A + B;            // Save Addition, C Flag Update
+                      CondCode[0] = (A[31] == B[31])       // V Flag Update
                                 && (A[31] != O[31]);
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
                     end
             4'b1100: begin                             // ORR - Logical OR                   *  *  /  -    A4.1.42
                       O = A | B;                        // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b1101: begin                             // MOV - Move                         *  *  /  -    A4.1.35
                       O = B;                            // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b1110: begin                             // BIC - Bit Clear                    *  *  /  -    A4.1.6
                       O = A & ~B;                       // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             4'b1111: begin                             // MVN - Move Not                     *  *  /  -    A4.1.41
                       O = ~B;                           // Save Operation
-                      Flags[3] = O[31];                 // N Flag Update
-                      Flags[2] = !O;                    // Z Flag Update
-                      Flags[1] = shifter_carry_out;     // C Flag Update
+                      CondCode[3] = O[31];                 // N Flag Update
+                      CondCode[2] = !O;                    // Z Flag Update
+                      CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
         endcase
-		if(S)		begin
-						$monitor("CPSR has been changed to: %b",Flags);
-						CPSR <= Flags;
-						$monitor("Output: %b \nFlags: %b \nCode: %b",O,Flags,{OP,S});
-					end
-		//$monitor("Output: %b \nFlags: %b \nCode: %b",O,Flags,{OP,S});	
 endmodule
 
 module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, input Cond); 
@@ -756,103 +763,339 @@ module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, 
 			end
 endmodule
 
-module pipelinePU;
-//precharge Instruction RAM *TESTED*
-    integer I_inFile, I_code;
-    reg [7:0] data;
-    reg [31:0] I_Address;
-    wire [31:0] I_DataOut;
-    instRAM256x8 ramI(I_DataOut, I_Address);
-    initial
-        begin
-            I_inFile = $fopen("ramintr.txt","r");
-            I_Address = 32'b0;
-            $display("");
-            $display("Instruction RAM was precharged with the following data:");
-            $display("        Address   Data");
-            while(!$feof(I_inFile))
-                begin
-                    #1 I_code = $fscanf(I_inFile, "%b", data);
-                    ramI.Mem[I_Address] = data;
-                    #7 $display("%d        %b", I_Address, data);
-                    #2 I_Address = I_Address + 1; 
-                end
-            $fclose(I_inFile);
-        end
-//System Variables
-    reg global_clk;
-//IF variables
-    wire [31:0] mux1_out;
-    wire mux1_sel;
-    wire [31:0] adder1_out;
-    wire [31:0] ramI_out;
-//ID variables
-    wire [31:0] adder2_out;
-    wire [31:0] pc_out;
-    wire [31:0] mux2_out;
-    wire [31:0] mux3_out;
-    wire [31:0] mux4_out;
-    wire [12:0] mux5_out;
-    wire [31:0] signExt1_out;
-//EXE variables
-    wire [31:0] mux6_out;
-    wire mux7_out;
-    wire [31:0] shifter1_out;
-    wire shifter1_carry_out;
-    wire [31:0] alu1_out;
-//MEM variables
-    wire[31:0] ramD_out;
-    wire[31:0] mux8_out;
-//WB variables
-//Instruction Fetch
-    mux2x1_32 mux1(mux1_out, mux1_sel, adder2_out, adder1_out);
-        //output to register
-    adder adder1(adder1_out, pc_out, 32'h04, global_clk);
-        // output to register
-        // output to previous mux *DONE*
-    instRAM256x8 ramI(ramI_out, pc_out);
-        // output to register
+module condition_handler(output reg Cond_true, B, L, input[3:0] CC, CI, input ID_B, IR_L);
+	always @ (ID_B,IR_L,CC,CI)
+		begin
+		case(CI)
+			4'b0000:
+				begin
+					Cond_true<=CC[2];//Z
+					if(ID_B)B<=CC[2];
+					else B<=0;
+					if(IR_L)L<=CC[2];
+					else L<=0;
+				end
+			4'b0001:
+				begin
+					Cond_true<=CC[2];//Z
+					if(ID_B)B<=CC[2];
+					else B<=0;
+					if(IR_L)L<=CC[2];
+					else L<=0;
+				end
+			4'b0010:
+				begin
+					Cond_true<=CC[1];//C
+					if(ID_B)B<=CC[1];
+					else B<=0;
+					if(IR_L)L<=CC[1];
+					else L<=0;
+				end
+			4'b0011:
+				begin
+					Cond_true<=!CC[1];//~C
+					if(ID_B)B<=!CC[1];
+					else B<=0;
+					if(IR_L)L<=!CC[1];
+					else L<=0;
+				end
+			4'b0100:
+				begin
+					Cond_true<=CC[3];//N
+					if(ID_B)B<=CC[3];
+					else B<=0;
+					if(IR_L)L<=CC[3];
+					else L<=0;
+				end
+			4'b0101:
+				begin
+					Cond_true<=!CC[3];//~N
+					if(ID_B)B<=!CC[3];
+					else B<=0;
+					if(IR_L)L<=!CC[3];
+					else L<=0;
+				end
+			4'b0110:
+				begin
+					Cond_true<=CC[0];//V
+					if(ID_B)B<=CC[0];
+					else B<=0;
+					if(IR_L)L<=CC[0];
+					else L<=0;
+				end
+			4'b0111:
+				begin
+					Cond_true<=!CC[0];//~V
+					if(ID_B)B<=!CC[0];
+					else B<=0;
+					if(IR_L)L<=!CC[0];
+					else L<=0;
+				end
+			4'b1000:
+				begin
+					Cond_true<=CC[1]&&(!CC[2]);//C&&~Z
+					if(ID_B)B<=CC[1]&&(!CC[2]);
+					else B<=0;
+					if(IR_L)L<=CC[1]&&(!CC[2]);
+					else L<=0;
+				end
+			4'b1001:
+				begin
+					Cond_true<=(!CC[1])||CC[2];//~C||Z
+					if(ID_B)B<=(!CC[1])||CC[2];
+					else B<=0;
+					if(IR_L)L<=(!CC[1])||CC[2];
+					else L<=0;
+				end
+			4'b1010:
+				begin
+					Cond_true<=CC[3]==CC[0];//N=V
+					if(ID_B)B<=CC[3]==CC[0];
+					else B<=0;
+					if(IR_L)L<=CC[3]==CC[0];
+					else L<=0;
+				end
+			4'b1011:
+				begin
+					Cond_true<=CC[3]!=CC[0];//N~=V
+					if(ID_B)B<=CC[3]!=CC[0];
+					else B<=0;
+					if(IR_L)L<=CC[3]!=CC[0];
+					else L<=0;
+				end
+			4'b1100:
+				begin
+					Cond_true<=(!CC[2])&&(CC[3]==CC[0]);//(~Z)&&N=V
+					if(ID_B)B<=(!CC[2])&&(CC[3]==CC[0]);
+					else B<=0;
+					if(IR_L)L<=(!CC[2])&&(CC[3]==CC[0]);
+					else L<=0;
+				end
+			4'b1101:
+				begin
+					Cond_true<=(CC[2])||(CC[3]!=CC[0]);//(Z)||N!=V
+					if(ID_B)B<=(CC[2])||(CC[3]!=CC[0]);
+					else B<=0;
+					if(IR_L)L<=(CC[2])||(CC[3]!=CC[0]);
+					else L<=0;
+				end
+			4'b1110:
+				begin
+					Cond_true<=1;
+					if(ID_B)B<=1;
+					else B<=0;
+					if(IR_L)L<=1;
+					else L<=0;
+				end
+			4'b1111:
+				begin
+					Cond_true<=0;
+					B<=0;
+					L<=0;
+				end
+		endcase
+		end
+endmodule		
 
-//Instruction Decode
-    //register file
-        //output to previous phase instruction RAM
-        //output to mux1
-        //output to mux2
-        //output to mux3
-    mux4x1_32 mux2(mux2_out);
-        //output to register
-    mux4x1_32 mux3(mux3_out);
-        //output to register
-    mux4x1_32 mux4(mux4_out);
-        //output to register
-    sign_ext signExt1(signExt1_out, /*FROM REG*/);
-        //output to adder2
-        //output to previous phase mux
-    adder adder2(adder2_out, signExt1_out, /*FROM REG*/);
-    mux2x1_13 mux5(mux5_out, 13'h0, /*FROM CPU*/);
-//Execution
-    shifter shifter1();
-        //output to muxes
-    mux2x1_32 mux6(mux6_out, /*FROM REG(ID_shift_imm)*/, /*FROM REG*/, shifter1_out);
-
-    mux2x1_1 mux7(mux7_out, /*FROM REG (ID_shift_imm)*/, 1'b0, shifter1_carry_out);
-    alu alu1(alu1_out,);
-        //output to register 
-        //cc to flag register
-    //flag register here plis
-//Memory   module dataRAM256x8 (output reg [31:0] DataOut, input Enable, ReadWrite, input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
-    dataRAM256x8 ramD(ramD_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/,);
-        //output to register
-    mux2x1_32 mux8(mux8_out, );
-    output to mux1 mux2 mux3
-
+module hazard_fwd_unit(output reg[1:0] Data_Forw_PA, Data_Forw_PB, Data_Forw_PD, 
+output reg NOP, LE_IF_ID, LE_PC, input[3:0] ID_Rn, ID_Rm, EX_Rd, MEM_Rd, WB_Rd, 
+input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr);
+	always @ (ID_Rn, ID_Rm, EX_Rd, MEM_Rd, WB_Rd, EX_RF_enable,MEM_RF_enable,WB_Rd, EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr)
+	begin
+		if(EX_RF_enable&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+			begin
+				if(ID_Rn==EX_Rd&&ID_Rm==EX_Rd) 
+					begin
+						Data_Forw_PA<=2'b01;
+						Data_Forw_PB<=2'b01;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rn==EX_Rd) 
+					begin
+						Data_Forw_PA<=2'b01;
+						Data_Forw_PB<=2'b00;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rm==EX_Rd) 
+					begin
+						Data_Forw_PA<=2'b00;
+						Data_Forw_PB<=2'b01;
+						Data_Forw_PD<=2'b00;
+					end
+			end
+		else if(MEM_RF_enable&&(ID_Rn==MEM_Rd||ID_Rm==MEM_Rd))
+			begin
+				if(ID_Rn==MEM_Rd&&ID_Rm==MEM_Rd) 
+					begin
+						Data_Forw_PA<=2'b10;
+						Data_Forw_PB<=2'b10;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rn==MEM_Rd) 
+					begin
+						Data_Forw_PA<=2'b10;
+						Data_Forw_PB<=2'b00;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rm==MEM_Rd) 
+					begin
+						Data_Forw_PA<=2'b00;
+						Data_Forw_PB<=2'b10;
+						Data_Forw_PD<=2'b00;
+					end
+			end
+		else if(WB_RF_enable&&(ID_Rn==WB_Rd||ID_Rm==WB_Rd))
+			begin
+				if(ID_Rn==WB_Rd&&ID_Rm==WB_Rd) 
+					begin
+						Data_Forw_PA<=2'b11;
+						Data_Forw_PB<=2'b11;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rn==WB_Rd) 
+					begin
+						Data_Forw_PA<=2'b11;
+						Data_Forw_PB<=2'b00;
+						Data_Forw_PD<=2'b00;
+					end
+				else if(ID_Rm==WB_Rd) 
+					begin
+						Data_Forw_PA<=2'b00;
+						Data_Forw_PB<=2'b11;
+						Data_Forw_PD<=2'b00;
+					end
+			end
+		else
+			begin
+				Data_Forw_PA<=2'b00;
+				Data_Forw_PB<=2'b00;
+				Data_Forw_PD<=2'b00;
+			end
+		if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rn==EX_Rd))
+			begin
+				NOP<=1'b0;
+				LE_IF_ID<=1'b0;
+				LE_PC<=1'b0;
+			end
+		else
+			begin
+				NOP<=1'b1;
+				LE_IF_ID<=1'b1;
+				LE_PC<=1'b1;
+			end
+	end
 endmodule
 
+module pipelinePU;
+    //precharge Instruction RAM *TESTED*
+        integer I_inFile, I_code;
+        reg [7:0] data;
+        reg [31:0] I_Address;
+        wire [31:0] I_DataOut;
+        instRAM256x8 ramI(I_DataOut, I_Address);
+        initial
+            begin
+                I_inFile = $fopen("ramintr.txt","r");
+                I_Address = 32'b0;
+                $display("");
+                $display("Instruction RAM was precharged with the following data:");
+                $display("        Address   Data");
+                while(!$feof(I_inFile))
+                    begin
+                        #1 I_code = $fscanf(I_inFile, "%b", data);
+                        ramI.Mem[I_Address] = data;
+                        #7 $display("%d        %b", I_Address, data);
+                        #2 I_Address = I_Address + 1; 
+                    end
+                $fclose(I_inFile);
+            end
+    //System Variables
+        reg global_clk;
+    //IF variables
+        wire [31:0] mux1_out;
+        wire mux1_sel;
+        wire [31:0] adder1_out;
+        wire [31:0] ramI_out;
+    //ID variables
+        wire [31:0] adder2_out;
+        wire [31:0] pc_out;
+        wire [31:0] mux2_out;
+        wire [31:0] mux3_out;
+        wire [31:0] mux4_out;
+        wire [12:0] mux5_out;
+        wire [31:0] signExt1_out;
+    //EXE variables
+        wire [31:0] mux6_out;
+        wire mux7_out;
+        wire [31:0] shifter1_out;
+        wire shifter1_carry_out;
+        wire [31:0] alu1_out;
+        wire [3:0] alu1_cc;
+        wire [3:0] flag_reg1_out;
+        wire flag_reg1_c_in;
+    //MEM variables
+        wire[31:0] ramD_out;
+        wire[31:0] mux8_out;
+    //WB variables
+        wire[31:0] mux9_out;
+    //Condition Handling variables
+        wire cond_handler_cond;
+        wire cond_handler_B;
+        wire cond_handler_L;
+    //Hazard/Forwarding variables
+        wire hzd_fwd_LE_IF;
+        wire hzd_fwd_LE_PC;
+        wire hzd_fwd_NOP;
+        wire[1:0] hzd_fwd_fwd_PA;
+        wire[1:0] hzd_fwd_fwd_PB;
+        wire[1:0] hzd_fwd_fwd_PD;
+    //Control Unit variables
+    //Instruction Fetch
+        mux2x1_32 mux1(mux1_out, mux1_sel, adder2_out, adder1_out);
+            //output to register
+        adder adder1(adder1_out, pc_out, 32'h04, global_clk);
+            // output to register
+            // output to previous mux *DONE*
+        instRAM256x8 ramI(ramI_out, pc_out);
+            // output to register
 
+    //Instruction Decode
+        //register file
+            //output to previous phase instruction RAM
+            //output to mux1
+            //output to mux2
+            //output to mux3
+        mux4x1_32 mux2(mux2_out,,, alu1_out, mux8_out, mux9_out);
+            //output to register
+        mux4x1_32 mux3(mux3_out,,, alu1_out, mux8_out, mux9_out);
+            //output to register
+        mux4x1_32 mux4(mux4_out,,, alu1_out, mux8_out, mux9_out);
+            //output to register
+        sign_ext signExt1(signExt1_out, /*FROM REG*/);
+            //output to adder2
+            //output to previous phase mux
+        adder adder2(adder2_out, signExt1_out, /*FROM REG*/);
+        mux2x1_13 mux5(mux5_out, 13'h0, /*FROM CPU*/);
+    //Execution
+        shifter shifter1(shifter1_out, shifter1_carry_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, flag_reg1_c_in);
 
+        mux2x1_32 mux6(mux6_out, /*FROM REG(ID_shift_imm)*/, /*FROM REG*/, shifter1_out);
 
+        mux2x1_1 mux7(mux7_out, /*FROM REG (ID_shift_imm)*/, 1'b0, shifter1_carry_out);
 
+        alu alu1(alu1_out, alu1_cc, /*FROM REG*/, mux6_out, /*FROM REG*/, flag_reg1_c_in, shifter1_carry_out);
 
-/* Writeback Phase
-mux 2*1
-*/
+        flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, /*FROM REG*/);
+    //Memory 
+        dataRAM256x8 ramD(ramD_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/,);
+            //output to register
+        mux2x1_32 mux8(mux8_out, /*FROM REG*/, ramD_out, /*FROM REG*/);
+    //Writeback
+        mux2x1_32 mux9(mux9_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/);
+    //Condition Handling
+        condition_handler cond_handler1(cond_handler_cond, cond_handler_B, cond_handler_L, flag_reg1_out, /*FROM REG*/, /*FROM CPU*/, /*FROM REG*/);
+    //Hazard/Forwarding
+        hazard_fwd_unit hzd_fwd_u1(hzd_fwd_fwd_PA, hzd_fwd_fwd_PB, hzd_fwd_fwd_PC, hzd_fwd_NOP, hzd_fwd_LE_IF, hzd_fwd_LE_PC /*MANY INPUTS FROM REG*/);
+    //Control Unit
+endmodule
+
