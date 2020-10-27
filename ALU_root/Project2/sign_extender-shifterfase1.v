@@ -72,10 +72,10 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                 end
                 endcase
             
-        // Addressing Mode 2: Load Store A5.2
+        // Addressing Mode 2: Load Store
 		//Immidiate Offset
 			2'b10:	begin
-						{OUT} <= L;
+						{OUT} = L;
 					end
 			2'b11:	begin//Register Offset
 						{OUT} <= RM;

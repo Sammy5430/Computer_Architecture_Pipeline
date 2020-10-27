@@ -1,11 +1,25 @@
-//FIX: Input address is always even and a multiple of for, therefore
+//Input address is always even and a multiple of four, therefore
 //the two least significant bits must be converted to 00
-//This can be done using an AND to clear those last two bits
 
 module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
     reg[7:0] Mem[0:255];
+    reg[31:0] temp;
     always@(Address)
-            DataOut = Mem[Address];
+        begin
+            if(Address > 255)
+                $display("Invalid address. Address must be between 0 and 255.");
+            else
+                begin
+                    temp = Address & 32'hfffffffc;
+                    DataOut = Mem[temp];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+1];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+2];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+3];
+                end
+        end
 endmodule
 
 
