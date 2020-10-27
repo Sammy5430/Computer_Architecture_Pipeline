@@ -44,35 +44,43 @@ module mux16x1 (output reg [31:0] DataOut,input [3:0] s, input [31:0] A, B, C, D
   endcase
 endmodule
 
-module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
-  wire [31:0] data [15:0];// data register output to connect to the multiplexers 
-  wire [15:0] enables; // transfering the activation from the decoder to the registers
+module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
+    //Stating the wires
+    wire [31:0] data [15:0];// data register output to connect to the multiplexers 
+    wire [15:0] enables; // transfering the activation from the decoder to the registers
+    wire [31:0] addedPCin; //from adder to mux2x1
+    wire [31:0] chosenData;//mux to register 15
 
-  binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
+    //Connecting the Modules
+    binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
 
-  registers R0 (data[0], datain, enables[15-0], clk, clr);
-  registers R1 (data[1], datain, enables[15-1], clk, clr);
-  registers R2 (data[2], datain, enables[15-2], clk, clr);
-  registers R3 (data[3], datain, enables[15-3], clk, clr);
-  registers R4 (data[4], datain, enables[15-4], clk, clr);
-  registers R5 (data[5], datain, enables[15-5], clk, clr);
-  registers R6 (data[6], datain, enables[15-6], clk, clr);
-  registers R7 (data[7], datain, enables[15-7], clk, clr);
-  registers R8 (data[8], datain, enables[15-8], clk, clr);
-  registers R9 (data[9], datain, enables[15-9], clk, clr);
-  registers R10 (data[10], datain, enables[15-10], clk, clr);
-  registers R11 (data[11], datain, enables[15-11], clk, clr);
-  registers R12 (data[12], datain, enables[15-12], clk, clr);
-  registers R13 (data[13], datain, enables[15-13], clk, clr);
-  registers R14 (data[14], datain, enables[15-14], clk, clr);
+    //15 registers
+    registers R0 (data[0], datain, enables[15-0], clk, clr);
+    registers R1 (data[1], datain, enables[15-1], clk, clr);
+    registers R2 (data[2], datain, enables[15-2], clk, clr);
+    registers R3 (data[3], datain, enables[15-3], clk, clr);
+    registers R4 (data[4], datain, enables[15-4], clk, clr);
+    registers R5 (data[5], datain, enables[15-5], clk, clr);
+    registers R6 (data[6], datain, enables[15-6], clk, clr);
+    registers R7 (data[7], datain, enables[15-7], clk, clr);
+    registers R8 (data[8], datain, enables[15-8], clk, clr);
+    registers R9 (data[9], datain, enables[15-9], clk, clr);
+    registers R10 (data[10], datain, enables[15-10], clk, clr);
+    registers R11 (data[11], datain, enables[15-11], clk, clr);
+    registers R12 (data[12], datain, enables[15-12], clk, clr);
+    registers R13 (data[13], datain, enables[15-13], clk, clr);
+    registers R14 (data[14], datain, enables[15-14], clk, clr);
 
-  registers R15 (data[15], datain, enables[15-15],clk, clr);// needs to be pc? must find a way to add 4 but also have the data that is passing through
+    //PC
+    adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
+    mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-  // //Multiplexers
-  mux16to1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-  mux16to1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-  mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    registers R15 (data[15], chosenData, enables[15-15],clk, clr);// decision done
 
+    // //Multiplexers
+    mux16to1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    mux16to1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 endmodule
 
 module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
@@ -793,6 +801,8 @@ module pipelinePU;
     wire shifter1_carry_out;
     wire [31:0] alu1_out;
 //MEM variables
+    wire[31:0] ramD_out;
+    wire[31:0] mux8_out;
 //WB variables
 //Instruction Fetch
     mux2x1_32 mux1(mux1_out, mux1_sel, adder2_out, adder1_out);
@@ -830,10 +840,10 @@ module pipelinePU;
         //output to register 
         //cc to flag register
     //flag register here plis
-//Memory
-data memory
-    output to register
-mux2x1
+//Memory   module dataRAM256x8 (output reg [31:0] DataOut, input Enable, ReadWrite, input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
+    dataRAM256x8 ramD(ramD_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/,);
+        //output to register
+    mux2x1_32 mux8(mux8_out, );
     output to mux1 mux2 mux3
 
 endmodule
