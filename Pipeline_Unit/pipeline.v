@@ -176,6 +176,14 @@ input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
                 endcase
 endmodule
 
+module mux2x1_1 (output reg DataOut, input s, A, B);
+    always @(s, A, B)
+        case(s)
+            1'b0:  DataOut = A;
+            1'b1:  DataOut = B;
+        endcase
+endmodule
+
 module mux2x1_13 (output reg [12:0] DataOut, input s,  input [12:0] A, B);
     always @(s, A, B)
         case(s)
@@ -228,6 +236,217 @@ module sign_ext (output reg[31:0] TA, input[23:0] base);
 		end
 endmodule
 
+module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0] RM, input[11:0] L, input[1:0] M, input C_in);
+    reg [31:0] temp;
+    always @ (L, RM)
+        // Addressing Mode 1: Data processing
+        case(M)
+            // Immediate - ARM Manual A5.1.3
+            2'b00:	begin
+						{temp} = L[7:0];
+						{OUT} = {temp, temp} >> (2 * L[11:8]);
+						// Update shifter_carry_out
+                    	if(L[11:8] == 4'b0000) 
+							shifter_carry_out = C_in;
+						else
+							shifter_carry_out = OUT[31];
+					end
+            // Shift by Immediate Shifter
+            2'b01:	begin
+                // L[11:7] = shift_imm.
+                // L[6:5] = shift:= LSL | LSR | ASR | ROR
+                case(L[6:5])
+                    // LSL = Logical Shift Left - ARM Manual A5.1.5
+                    // shifter_operand = Rm logically shifted to the left 'shift_imm' times.
+                    2'b00:  if(L[11:7] == 5'b00000)// Operand Register - ARM Manual A5.1.4
+                                begin
+                                    {OUT} <= RM;
+                                    shifter_carry_out <= C_in;
+                                end
+                            else
+                                begin
+                                    {OUT} <= RM << L[11:7];
+                                    shifter_carry_out <= RM[32-{L[11:7]}];
+                                end
+                    // LSR = Logical Shift Right - ARM Manual A5.1.7
+                    // shifter_operand = Rm logically shifted to the right 'shift_imm' times.
+                    2'b01:  if(L[11:7] == 5'b00000)
+                                begin
+                                    {OUT} <= 32'b0;
+                                    shifter_carry_out <= RM[31];
+                                end
+                            else
+                                begin
+                                    {OUT} <= RM >> L[11:7];
+                                    shifter_carry_out <= RM[{L[11:7]}-1];
+                                end
+                    2'b10:  if(L[11:7] == 5'b00000)
+                                if(RM[31] == 1'b0)
+                                    begin
+                                        {OUT} <= 32'b0;
+                                        shifter_carry_out <= RM[31];
+                                    end
+                                else
+                                    begin
+                                        {OUT} <= 32'hFFFFFFFF;
+                                        shifter_carry_out <= RM[31];
+                                    end
+                            else
+                                begin
+                                    {OUT} <= $signed(RM) >>> L[11:7];
+                                    shifter_carry_out <= RM[{L[11:7]}-1];
+                                end
+                    // ROR = Rotate Right - ARM Manual A5.1.11
+                    // shifter_operand = Rm rotated to the right 'shift_imm' times.
+                    2'b11:  if(L[11:7] == 5'b00000) // (Rotate right with extend - ARM Manual A5.1.13)
+                                begin
+                                    {OUT} <= (C_in << 31) | (RM >> 1);
+                                    shifter_carry_out <= RM[0];
+                                end
+                            else
+                                begin
+                                    {OUT} <= {RM, RM} >> L[11:7];
+                                    shifter_carry_out <= RM[{L[11:7]}-1];
+                                end
+                endcase
+            
+        // Addressing Mode 2: Load Store
+		//Immidiate Offset
+			2'b10:	begin
+						{OUT} = L;
+					end
+			2'b11:	begin//Register Offset
+						{OUT} <= RM;
+					end
+		endcase
+endmodule
+
+module alu (output reg [31:0] O, output reg [3:0] Flags, CPSR, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out, S);
+    // A = Rn
+    // B = shifter_operand
+    // O = Rd
+    // Flag[0] = V(Overflow)
+    // Flag[1] = C(Carry)
+    // Flag[2] = Z(Zero)
+    // Flag[3] = N(Negative)
+	// Flags ARM Manual Section A2.5.2
+    always@(OP, A, B)
+        case(OP)
+                                                        //                                   Status Flags  ARM Manual
+                                                        //                                    N  Z  C  V    Section
+            4'b0000: begin                             // AND - Logical AND                  *  *  /  -    A4.1.4
+                      O = A & B;                        // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b0001: begin                             // EOR - Logical Exclusive OR         *  *  /  -    A4.1.18
+                      O = A ^ B;                        // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b0010: begin                             // SUB - Subtract                     *  *  *  *    A4.1.106
+                      {Flags[1], O} = A - B;            // Save Subtraction, C Flag Update
+                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                                  && (O[31] == B[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b0011: begin                             // RSB - Reverse Subtract             *  *  *  *    A4.1.60
+                      {Flags[1], O} = B - A;            // Save Subtraction, C Flag Update
+                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                                  && (O[31] == A[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b0100: begin                             // ADD - Addition                     *  *  *  *    A4.1.3
+                      {Flags[1], O} = A + B;            // Save Addition, C Flag Update
+                      Flags[0] = (A[31] == B[31])       // V Flag Update
+                                && (A[31] != O[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b0101: begin                             // ADC - Addition with Carry          *  *  *  *    A4.1.2
+                      {Flags[1], O} = A + B + C_in;     // Save Addition, C Flag Update
+                      Flags[0] = ((A[31] == B[31])      // V Flag Update
+                                && A[31] != O[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b0110: begin                             // SBC - Subtract with Carry          *  *  *  *    A4.1.65
+                      {Flags[1], O} = A - B - ~C_in;    // Save Subtraction, C Flag Update
+                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                                  && (O[31] == B[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b0111: begin                             // RSC - Reverse Subtract with Carry  *  *  *  *    A4.1.61
+                      {Flags[1], O} = B - A - ~C_in;    // Save Subtraction, C Flag Update
+                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                                  && (O[31] == A[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b1000: begin                             // TST - Test             (AND)       *  *  /  -    A4.1.117
+                      O = A & B;
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b1001: begin                             // TEQ - Test Equivalence (EOR)       *  *  /  -    A4.1.116
+                      O = A ^ B;
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b1010: begin                             // CMP - Compare          (SUB)       *  *  *  *    A4.1.15
+                      {Flags[1], O} = A - B;            // Save Subtraction, C Flag Update
+                      Flags[0] = (A[31] != B[31])       // V Flag Update
+                                  && (O[31] == B[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b1011: begin                             // CMN - Compare Negated  (ADD)       *  *  *  *    A4.1.14
+                      {Flags[1], O} = A + B;            // Save Addition, C Flag Update
+                      Flags[0] = (A[31] == B[31])       // V Flag Update
+                                && (A[31] != O[31]);
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                    end
+            4'b1100: begin                             // ORR - Logical OR                   *  *  /  -    A4.1.42
+                      O = A | B;                        // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b1101: begin                             // MOV - Move                         *  *  /  -    A4.1.35
+                      O = B;                            // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b1110: begin                             // BIC - Bit Clear                    *  *  /  -    A4.1.6
+                      O = A & ~B;                       // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+            4'b1111: begin                             // MVN - Move Not                     *  *  /  -    A4.1.41
+                      O = ~B;                           // Save Operation
+                      Flags[3] = O[31];                 // N Flag Update
+                      Flags[2] = !O;                    // Z Flag Update
+                      Flags[1] = shifter_carry_out;     // C Flag Update
+                    end
+        endcase
+		if(S)		begin
+						$monitor("CPSR has been changed to: %b",Flags);
+						CPSR <= Flags;
+						$monitor("Output: %b \nFlags: %b \nCode: %b",O,Flags,{OP,S});
+					end
+		//$monitor("Output: %b \nFlags: %b \nCode: %b",O,Flags,{OP,S});	
+endmodule
+
 module pipelinePU;
 //precharge Instruction RAM *TESTED*
     integer I_inFile, I_code;
@@ -267,6 +486,14 @@ module pipelinePU;
     wire [31:0] mux4_out;
     wire [12:0] mux5_out;
     wire [31:0] signExt1_out;
+//EXE variables
+    wire [31:0] mux6_out;
+    wire mux7_out;
+    wire [31:0] shifter1_out;
+    wire shifter1_carry_out;
+    wire [31:0] alu1_out;
+//MEM variables
+//WB variables
 //Instruction Fetch
     mux2x1_32 mux1(mux1_out, mux1_sel, adder2_out, adder1_out);
         //output to register
@@ -293,16 +520,16 @@ module pipelinePU;
         //output to previous phase mux
     adder adder2(adder2_out, signExt1_out, /*FROM REG*/);
     mux2x1_13 mux5(mux5_out, 13'h0, /*FROM CPU*/);
-//Execution Phase
-mux 2*1
-    output to ALU
-sign extender
-    output to previous mux
-mux 2*1
-    output to ALU
-ALU
-    output to register
-*/
+//Execution
+    shifter shifter1();
+        //output to muxes
+    mux2x1_32 mux6(mux6_out, /*FROM REG(ID_shift_imm)*/, /*FROM REG*/, shifter1_out);
+
+    mux2x1_1 mux7(mux7_out, /*FROM REG (ID_shift_imm)*/, 1'b0, shifter1_carry_out);
+    alu alu1(alu1_out,);
+        //output to register 
+        //cc to flag register
+
 endmodule
 
 /* Execution Phase
