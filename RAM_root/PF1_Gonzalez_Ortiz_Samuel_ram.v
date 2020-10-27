@@ -2,10 +2,9 @@
 //the two least significant bits must be converted to 00
 //This can be done using an AND to clear those last two bits
 
-module instRAM256x8 (output reg [31:0] DataOut, input Enable, input[31:0] Address);
+module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
     reg[7:0] Mem[0:255];
-    always@(Enable) 
-        if(Enable)
+    always@(Address)
             DataOut = Mem[Address];
 endmodule
 
@@ -96,11 +95,11 @@ module testInstRAM;
 //Pre-charge//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     integer I_inFile, I_code;
-    reg I_Enable;
+    // reg I_Enable;
     reg [7:0] data;
     reg [31:0] I_Address;
     wire [31:0] I_DataOut;
-    instRAM256x8 ramI(I_DataOut, I_Enable, I_Address);
+    instRAM256x8 ramI(I_DataOut, I_Address);
     initial
         begin
             I_inFile = $fopen("PF1_Gonzalez_Ortiz_Samuel_ramintr.txt","r");
@@ -117,15 +116,15 @@ module testInstRAM;
                 end
             $fclose(I_inFile);
         end
-    initial
-        begin
-            I_Enable = 1'b0;
-            repeat (16)
-                begin
-                    #5 I_Enable = 1'b1;
-                    #5 I_Enable = 1'b0;
-                end
-        end  
+    // initial
+    //     begin
+    //         I_Enable = 1'b0;
+    //         repeat (16)
+    //             begin
+    //                 #5 I_Enable = 1'b1;
+    //                 #5 I_Enable = 1'b0;
+    //             end
+    //     end  
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////
@@ -137,12 +136,12 @@ module testInstRAM;
             $display("");
             $display("Testing Instruction RAM:");
             $display("        Address   Data");
-            I_Enable = 1'b0;
+            // I_Enable = 1'b0;
             I_Address = 32'b0;
             repeat (16)
                 begin
-                    #5 I_Enable = 1'b1;
-                    #5 I_Enable = 1'b0;
+                    #5 //I_Enable = 1'b1;
+                    #5 //I_Enable = 1'b0;
                     $display("%d        %h", I_Address, I_DataOut);
                     I_Address = I_Address + 1;
                 end
