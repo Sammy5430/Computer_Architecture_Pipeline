@@ -173,11 +173,13 @@ endmodule
 
 //Register File module
 //All the modules will be implemented here and connected in the correct way except for the Adder
-module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
+module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
 
 //Stating the wires
 wire [31:0] data [15:0];// data register output to connect to the multiplexers 
 wire [15:0] enables; // transfering the activation from the decoder to the registers
+wire [31:0] addedPCin; //from adder to mux2x1
+wire [31:0] chosenData;//mux to register 15
 
 // wire [31:0] data0, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15;
 // wire en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15;
@@ -203,10 +205,11 @@ registers R12 (data[12], datain, enables[15-12], clk, clr);
 registers R13 (data[13], datain, enables[15-13], clk, clr);
 registers R14 (data[14], datain, enables[15-14], clk, clr);
 
+//PC
+adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
+mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-//
-
-registers R15 (data[15], datain, enables[15-15],clk, clr);// needs to be pc? must find a way to add 4 but also have the data that is passing through
+registers R15 (data[15], chosenData, enables[15-15],clk, clr);// decision done
 
 
 // registers R0 (data0, datain, en0, clk, clr);
@@ -256,7 +259,7 @@ reg clr, clk, lde;
 wire [31:0] O1, O2, O3, PCout;
 
 //registerfiel module
-registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, s1, s2, s3, ddata, datain, PCIN);
+registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, s1, s2, s3, ddata, datain, PCIN);
 
 
 initial begin
@@ -438,20 +441,20 @@ endmodule
 // endmodule
 
 
-module Flagregister(output reg [3:0] out, input [3:0] in, input lde);
+module Flagregister(output reg [31:0] CC_out, output reg C_in, input [31:0] CC_in, input s);
 //lde = loadEnable
 
-always@ (lde)
+always@ (s)
 begin
-  if (lde) out = in;
+  if (s) CC_out = CC_in;
 
-$display("Input: %h", in);
-$display("output: %h", out);
+$display("Input: %h", CC_in);
+$display("output: %h", CC_out);
 
 end
 endmodule
 
-//testing register woorks!!!
+//testing flag register woorks!!!
 // module testingflagresgister;
 //   wire [3:0] out ;
 //   reg [3:0] in;
@@ -510,9 +513,54 @@ always @(s, A, B)
 endcase
 endmodule
 
-module pipeline_registers();
+//IF/ID register
+// module pipeline_registers_1(output reg [31:0] PCAdressOut, PCNextout output reg LinkOut, input clk, LD, LinkIn input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+// wire [4:0] toConditionH;
+// wire [23:0] toSignextender;
+// wire bitToCondition;
+// wire [3:0] RA;
+// wire [3:0] RB;
+// wire [3:0] RD;
+// wire [11:0] directTonextregister;
+// wire oneBitToNextRegister;
+// wire [31:0] toCPU;
+
+// reg [31:0] temp;
+// always @ (posedge clk, LD);
+//  PCNextout = INNextPC;
+//  PCAdressOut = InPCAdress;
+//  LinkOut = LinkOut
+
+//  temp = InInstructionMEM & 32'b
 
 
 
-endmodule
+
+
+
+//  endmodule
 //son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
+
+// //ID/EX register
+// module pipeline_registers_2(output reg [31:0] out1, output reg [3:0] out2, output reg [23:0] out3, input clk, input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+// always @ (posedge clk);
+// begin
+//   if(LD)   ;
+// end
+// endmodule
+
+// //EX/MEM register
+// module pipeline_registers_2(output reg [31:0] out, input clk, input [31:0] indata);
+// always @ (posedge clk);
+// begin
+//   if(LD)   ;
+// end
+// endmodule
+
+// //MEM/WB register
+// module pipeline_registers_2(output reg [31:0] out, input clk, input [31:0] indata);
+// always @ (posedge clk);
+// begin
+//   if(LD)   ;
+// end
+// endmodule
