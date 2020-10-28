@@ -2,8 +2,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
     reg [31:0] temp;
     always @ (L, RM)
         // Addressing Mode 1: Data processing
-        case(M)
-            // Immediate - ARM Manual A5.1.3
+        // Immediate - ARM Manual A5.1.3
+		case(M)
             2'b00:	begin
 						{temp} = L[7:0];
 						{OUT} = {temp, temp} >> (2 * L[11:8]);
@@ -14,13 +14,13 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
 							shifter_carry_out = OUT[31];
 					end
             // Shift by Immediate Shifter
-            2'b01:	begin
+            2'b01:
                 // L[11:7] = shift_imm.
                 // L[6:5] = shift:= LSL | LSR | ASR | ROR
-                case(L[6:5])
                     // LSL = Logical Shift Left - ARM Manual A5.1.5
                     // shifter_operand = Rm logically shifted to the left 'shift_imm' times.
-                    2'b00:  if(L[11:7] == 5'b00000)// Operand Register - ARM Manual A5.1.4
+                    if(L[6:5]==2'b00)  
+							if(L[11:7] == 5'b00000)// Operand Register - ARM Manual A5.1.4
                                 begin
                                     {OUT} <= RM;
                                     shifter_carry_out <= C_in;
@@ -32,7 +32,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                 end
                     // LSR = Logical Shift Right - ARM Manual A5.1.7
                     // shifter_operand = Rm logically shifted to the right 'shift_imm' times.
-                    2'b01:  if(L[11:7] == 5'b00000)
+                    else if(L[6:5]==2'b01)
+							if(L[11:7] == 5'b00000)
                                 begin
                                     {OUT} <= 32'b0;
                                     shifter_carry_out <= RM[31];
@@ -42,7 +43,9 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                     {OUT} <= RM >> L[11:7];
                                     shifter_carry_out <= RM[{L[11:7]}-1];
                                 end
-                    2'b10:  if(L[11:7] == 5'b00000)
+					// ASR = Arithmetic Shift Right - ARM Manual A5.1.9			
+                    else if(L[6:5]==2'b10)  
+							if(L[11:7] == 5'b00000)
                                 if(RM[31] == 1'b0)
                                     begin
                                         {OUT} <= 32'b0;
@@ -60,7 +63,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                 end
                     // ROR = Rotate Right - ARM Manual A5.1.11
                     // shifter_operand = Rm rotated to the right 'shift_imm' times.
-                    2'b11:  if(L[11:7] == 5'b00000) // (Rotate right with extend - ARM Manual A5.1.13)
+                    else
+							if(L[11:7] == 5'b00000) // (Rotate right with extend - ARM Manual A5.1.13)
                                 begin
                                     {OUT} <= (C_in << 31) | (RM >> 1);
                                     shifter_carry_out <= RM[0];
@@ -70,15 +74,42 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                     {OUT} <= {RM, RM} >> L[11:7];
                                     shifter_carry_out <= RM[{L[11:7]}-1];
                                 end
-                endcase
-            
-        // Addressing Mode 2: Load Store
-		//Immidiate Offset
-			2'b10:	begin
-						{OUT} = L;
+			// Addressing Mode 2: Load Store
+			//Immidiate Offset
+			2'b10:  begin
+						{OUT} <= L[11:0];
 					end
-			2'b11:	begin//Register Offset
-						{OUT} <= RM;
+			2'b11:	begin
+						if(L[11:5]==7'b0)//Register Offset
+							begin
+							{OUT} <= RM;
+							end
+						else if(L[6:5]==2'b00)//LSL
+							{OUT} <= RM << L[11:7];
+						else if(L[6:5]==2'b01)//LSR
+							begin
+								if(L[11:7]==5'b00000)
+									{OUT} <= 32'b0;
+								else 
+									{OUT} <= RM >> L[11:7];
+							end
+						else if(L[6:5]==2'b10)//ASR
+							begin
+								if(L[11:7] == 5'b00000)
+									if(RM[31] == 1'b0)
+											{OUT} <= 32'b0;
+									else
+										{OUT} <= 32'hFFFFFFFF;
+								else
+									{OUT} <= $signed(RM) >>> L[11:7];
+							end
+						else//ROR/RRX
+							begin 
+								if(L[11:7] == 5'b00000) 
+                                    {OUT} <= (C_in << 31) | (RM >> 1);
+								else
+									{OUT} <= {RM, RM} >> L[11:7];
+							end
 					end
 		endcase
 endmodule

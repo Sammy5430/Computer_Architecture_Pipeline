@@ -1,4 +1,4 @@
-module alu (output reg [31:0] O, output reg [3:0] Flags, CPSR, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out, S);
+module alu (output reg [31:0] O, output reg [3:0] Flags, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out);
     // A = Rn
     // B = shifter_operand
     // O = Rd
