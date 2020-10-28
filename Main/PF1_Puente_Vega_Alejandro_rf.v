@@ -563,26 +563,106 @@ end
  endmodule
 //son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
 
-// //ID/EX register
-// module pipeline_registers_2(output reg [31:0] out1, output reg [3:0] out2, output reg [23:0] out3, input clk, input [31:0] InInstructionMEM, InPCAdress, INNextPC);
-// always @ (posedge clk);
-// begin
-//   if(LD)   ;
-// end
-// endmodule
+//ID/EX register
+module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, output reg singleBitOut, output reg [3:0] outRDBits,input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
+always @ (posedge clk);
+reg shift_imm;
+reg [3:0] OP;
+reg EXloadInst;
+reg EXRFEnable;
+reg NextReg1;
+reg NextReg2;
+reg [1:0] NextReg2Bit;/////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
+reg [1:0] Msignal;
+//temp variable
+reg [31:0] temp;
+always @(posedge clk)
+begin
+  directRegister = outMux1;
+  aluConnection = outMux2;
+  shiftExtender = outMux3;
+  singleBitOut = singleBit;
+  outRDBits = RDBits;
+  LelevenShift = bitsFromPRegister;
+
+  temp = muxSignals & 32'b00000000000000000001000000000000;
+  shift_imm = temp >> 12;
+
+  temp = muxSignals & 32'b00000000000000000000111100000000;
+  OP = temp >> 8 ;
+  
+  temp = muxSignals & 32'b00000000000000000000000010000000;
+  EXloadInst = temp >> 7;
+
+  temp = muxSignals & 32'b00000000000000000000000001000000;
+  EXRFEnable = temp >> 6;
+
+  temp = muxSignals & 32'b00000000000000000000000000100000;
+  NextReg1 = temp >> 5;
+
+  temp = muxSignals & 32'b00000000000000000000000000010000;
+  NextReg2 = temp >> 4;
+
+  temp = muxSignals & 32'b00000000000000000000000000001100;
+  NextReg2Bit = temp >> 2;
+
+  temp = muxSignals & 32'b00000000000000000000000000000011;
+  Msignal = temp;
+
+end
+endmodule
 
 // //EX/MEM register
-// module pipeline_registers_2(output reg [31:0] out, input clk, input [31:0] indata);
-// always @ (posedge clk);
-// begin
-//   if(LD)   ;
-// end
-// endmodule
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut ,input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
+reg EXloadInst2;
+reg EXRFEnable2;
+reg Data_Mem_EN;
+reg Data_MEM_R_W;
+reg [1:0] AccessModeDataMemory;
+
+reg [31:0] temp;
+always @ (posedge clk)
+begin
+  outAluSignal = aluOut;
+  data_Mem = pastReg;
+  RDSignalOut = RDSignal;
+
+
+  temp = previousregister & 32'b00000000000000000000000000100000;
+  EXloadInst2 = temp >> 5;
+
+  temp = previousregister & 32'b00000000000000000000000000010000;
+  EXRFEnable2 = temp >> 4;
+
+  temp = previousregister & 32'b00000000000000000000000000001000;
+  Data_Mem_EN = temp >> 3;
+
+  temp = previousregister & 32'b00000000000000000000000000000100;
+  Data_MEM_R_W = temp >> 2;
+
+  temp = previousregister & 32'b00000000000000000000000000000011;
+  AccessModeDataMemory = temp;
+
+end
+endmodule
 
 // //MEM/WB register
-// module pipeline_registers_2(output reg [31:0] out, input clk, input [31:0] indata);
-// always @ (posedge clk);
-// begin
-//   if(LD)   ;
-// end
-// endmodule
+module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0] Enablers);
+reg EXloadInst3;
+reg EXRFEnable3;
+
+reg [31:0] temp;
+
+always @ (posedge clk)
+begin
+  Data_mem_to_mux = Data_mem_out;
+  SignalFromEX = signalFormEXIN;
+  LastRDSignal = lAstRDsignalIn;
+
+  temp = Enablers & 32'b00000000000000000000000000000010;
+  EXloadInst3 = temp >> 1;
+
+  temp = Enablers & 32'b00000000000000000000000000000001;
+  EXRFEnable3 = temp;
+end
+endmodule
