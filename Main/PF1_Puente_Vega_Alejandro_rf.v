@@ -516,16 +516,17 @@ endcase
 endmodule
 
 //IF/ID register
-module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg LinkOut, input clk, LD, LinkIn , input [31:0] InInstructionMEM, InPCAdress, INNextPC);
-reg [4:0] toConditionH;
-reg [23:0] toSignextender;
-reg bitToCondition;
-reg [3:0] RA;
-reg [3:0] RB;
-reg [3:0] RD;
-reg [11:0] directTonextregister;
-reg oneBitToNextRegister;
-//wire [31:0] toCPU;
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [4:0] toConditionH, output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn , input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+// reg [4:0] toConditionH;
+// reg [23:0] toSignextender;
+// reg bitToCondition;
+// reg [3:0] RA;
+// reg [3:0] RB;
+// reg [3:0] RD;
+// reg [11:0] directTonextregister;
+// reg oneBitToNextRegister;
+// reg [31:0] toCPU;
+
 reg [31:0] temp;
 
 always @ (posedge clk, LD)
