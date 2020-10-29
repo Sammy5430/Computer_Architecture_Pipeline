@@ -44,7 +44,8 @@ module mux16x1 (output reg [31:0] DataOut,input [3:0] s, input [31:0] A, B, C, D
   endcase
 endmodule
 
-module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
+module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, 
+input [31:0] datain, PCIN);
     //Stating the wires
     wire [31:0] data [15:0];// data register output to connect to the multiplexers 
     wire [15:0] enables; // transfering the activation from the decoder to the registers
@@ -261,8 +262,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
     reg [31:0] temp;
     always @ (L, RM)
         // Addressing Mode 1: Data processing
-        case(M)
-            // Immediate - ARM Manual A5.1.3
+        // Immediate - ARM Manual A5.1.3
+		case(M)
             2'b00:	begin
 						{temp} = L[7:0];
 						{OUT} = {temp, temp} >> (2 * L[11:8]);
@@ -273,13 +274,13 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
 							shifter_carry_out = OUT[31];
 					end
             // Shift by Immediate Shifter
-            2'b01:	begin
+            2'b01:
                 // L[11:7] = shift_imm.
                 // L[6:5] = shift:= LSL | LSR | ASR | ROR
-                case(L[6:5])
                     // LSL = Logical Shift Left - ARM Manual A5.1.5
                     // shifter_operand = Rm logically shifted to the left 'shift_imm' times.
-                    2'b00:  if(L[11:7] == 5'b00000)// Operand Register - ARM Manual A5.1.4
+                    if(L[6:5]==2'b00)  
+							if(L[11:7] == 5'b00000)// Operand Register - ARM Manual A5.1.4
                                 begin
                                     {OUT} <= RM;
                                     shifter_carry_out <= C_in;
@@ -291,7 +292,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                 end
                     // LSR = Logical Shift Right - ARM Manual A5.1.7
                     // shifter_operand = Rm logically shifted to the right 'shift_imm' times.
-                    2'b01:  if(L[11:7] == 5'b00000)
+                    else if(L[6:5]==2'b01)
+							if(L[11:7] == 5'b00000)
                                 begin
                                     {OUT} <= 32'b0;
                                     shifter_carry_out <= RM[31];
@@ -301,7 +303,9 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                     {OUT} <= RM >> L[11:7];
                                     shifter_carry_out <= RM[{L[11:7]}-1];
                                 end
-                    2'b10:  if(L[11:7] == 5'b00000)
+					// ASR = Arithmetic Shift Right - ARM Manual A5.1.9			
+                    else if(L[6:5]==2'b10)  
+							if(L[11:7] == 5'b00000)
                                 if(RM[31] == 1'b0)
                                     begin
                                         {OUT} <= 32'b0;
@@ -319,7 +323,8 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                 end
                     // ROR = Rotate Right - ARM Manual A5.1.11
                     // shifter_operand = Rm rotated to the right 'shift_imm' times.
-                    2'b11:  if(L[11:7] == 5'b00000) // (Rotate right with extend - ARM Manual A5.1.13)
+                    else
+							if(L[11:7] == 5'b00000) // (Rotate right with extend - ARM Manual A5.1.13)
                                 begin
                                     {OUT} <= (C_in << 31) | (RM >> 1);
                                     shifter_carry_out <= RM[0];
@@ -329,15 +334,42 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
                                     {OUT} <= {RM, RM} >> L[11:7];
                                     shifter_carry_out <= RM[{L[11:7]}-1];
                                 end
-                endcase
-            
-        // Addressing Mode 2: Load Store
-		//Immidiate Offset
-			2'b10:	begin
-						{OUT} = L;
+			// Addressing Mode 2: Load Store
+			//Immidiate Offset
+			2'b10:  begin
+						{OUT} <= L[11:0];
 					end
-			2'b11:	begin//Register Offset
-						{OUT} <= RM;
+			2'b11:	begin
+						if(L[11:5]==7'b0)//Register Offset
+							begin
+							{OUT} <= RM;
+							end
+						else if(L[6:5]==2'b00)//LSL
+							{OUT} <= RM << L[11:7];
+						else if(L[6:5]==2'b01)//LSR
+							begin
+								if(L[11:7]==5'b00000)
+									{OUT} <= 32'b0;
+								else 
+									{OUT} <= RM >> L[11:7];
+							end
+						else if(L[6:5]==2'b10)//ASR
+							begin
+								if(L[11:7] == 5'b00000)
+									if(RM[31] == 1'b0)
+											{OUT} <= 32'b0;
+									else
+										{OUT} <= 32'hFFFFFFFF;
+								else
+									{OUT} <= $signed(RM) >>> L[11:7];
+							end
+						else//ROR/RRX
+							begin 
+								if(L[11:7] == 5'b00000) 
+                                    {OUT} <= (C_in << 31) | (RM >> 1);
+								else
+									{OUT} <= {RM, RM} >> L[11:7];
+							end
 					end
 		endcase
 endmodule
@@ -986,6 +1018,163 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr);
 	end
 endmodule
 
+//IF/ID register
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg LinkOut, 
+input clk, LD, LinkIn, input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+  reg [4:0] toConditionH;
+  reg [23:0] toSignextender;
+  reg bitToCondition;
+  reg [3:0] RA;
+  reg [3:0] RB;
+  reg [3:0] RD;
+  reg [11:0] directTonextregister;
+  reg oneBitToNextRegister;
+  //wire [31:0] toCPU;
+  reg [31:0] temp;
+
+  always @ (posedge clk, LD)
+    begin
+      PCNextout = INNextPC;
+      PCAdressOut = InPCAdress;
+      LinkOut = LinkIn;
+
+      temp = InInstructionMEM & 32'b11111000000000000000000000000000;
+      toConditionH = temp >> 28;
+
+      temp = InInstructionMEM & 32'b00000000111111111111111111111111;
+      toSignextender = temp;
+
+      temp = InInstructionMEM & 32'b00000001000000000000000000000000;
+      bitToCondition = temp >> 24;
+
+      temp = InInstructionMEM & 32'b00000000000011110000000000000000;
+      RA = temp >> 16;
+
+      temp = InInstructionMEM & 32'b00000000000000000000000000001111;
+      RB = temp;
+
+      temp = InInstructionMEM & 32'b00000000000000001111000000000000;
+      RD = temp >> 12;
+
+      temp = InInstructionMEM & 32'b00000000000000000000111111111111;
+      directTonextregister = temp;
+
+      temp = InInstructionMEM & 32'b00000000000100000000000000000000;
+      oneBitToNextRegister = temp >> 20;
+
+
+    end
+endmodule
+
+//ID/EX register
+module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, 
+output reg singleBitOut, output reg [3:0] outRDBits,input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, 
+input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
+  always @ (posedge clk);
+  reg shift_imm;
+  reg [3:0] OP;
+  reg EXloadInst;
+  reg EXRFEnable;
+  reg NextReg1;
+  reg NextReg2;
+  reg [1:0] NextReg2Bit;/////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
+  reg [1:0] Msignal;
+  //temp variable
+  reg [31:0] temp;
+  always @(posedge clk)
+  begin
+    directRegister = outMux1;
+    aluConnection = outMux2;
+    shiftExtender = outMux3;
+    singleBitOut = singleBit;
+    outRDBits = RDBits;
+    LelevenShift = bitsFromPRegister;
+
+    temp = muxSignals & 32'b00000000000000000001000000000000;
+    shift_imm = temp >> 12;
+
+    temp = muxSignals & 32'b00000000000000000000111100000000;
+    OP = temp >> 8 ;
+    
+    temp = muxSignals & 32'b00000000000000000000000010000000;
+    EXloadInst = temp >> 7;
+
+    temp = muxSignals & 32'b00000000000000000000000001000000;
+    EXRFEnable = temp >> 6;
+
+    temp = muxSignals & 32'b00000000000000000000000000100000;
+    NextReg1 = temp >> 5;
+
+    temp = muxSignals & 32'b00000000000000000000000000010000;
+    NextReg2 = temp >> 4;
+
+    temp = muxSignals & 32'b00000000000000000000000000001100;
+    NextReg2Bit = temp >> 2;
+
+    temp = muxSignals & 32'b00000000000000000000000000000011;
+    Msignal = temp;
+
+  end
+endmodule
+
+//EX/MEM register
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut ,input clk, 
+input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
+  reg EXloadInst2;
+  reg EXRFEnable2;
+  reg Data_Mem_EN;
+  reg Data_MEM_R_W;
+  reg [1:0] AccessModeDataMemory;
+
+  reg [31:0] temp;
+  always @ (posedge clk)
+  begin
+    outAluSignal = aluOut;
+    data_Mem = pastReg;
+    RDSignalOut = RDSignal;
+
+
+    temp = previousregister & 32'b00000000000000000000000000100000;
+    EXloadInst2 = temp >> 5;
+
+    temp = previousregister & 32'b00000000000000000000000000010000;
+    EXRFEnable2 = temp >> 4;
+
+    temp = previousregister & 32'b00000000000000000000000000001000;
+    Data_Mem_EN = temp >> 3;
+
+    temp = previousregister & 32'b00000000000000000000000000000100;
+    Data_MEM_R_W = temp >> 2;
+
+    temp = previousregister & 32'b00000000000000000000000000000011;
+    AccessModeDataMemory = temp;
+
+  end
+endmodule
+
+//MEM/WB register
+module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, input clk, 
+input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0] Enablers);
+  reg EXloadInst3;
+  reg EXRFEnable3;
+
+  reg [31:0] temp;
+
+  always @ (posedge clk)
+  begin
+    Data_mem_to_mux = Data_mem_out;
+    SignalFromEX = signalFormEXIN;
+    LastRDSignal = lAstRDsignalIn;
+
+    temp = Enablers & 32'b00000000000000000000000000000010;
+    EXloadInst3 = temp >> 1;
+
+    temp = Enablers & 32'b00000000000000000000000000000001;
+    EXRFEnable3 = temp;
+  end
+endmodule
+
+
 module pipelinePU;
     //precharge Instruction RAM *TESTED*
         integer I_inFile, I_code;
@@ -1013,17 +1202,24 @@ module pipelinePU;
         reg global_clk;
     //IF variables
         wire [31:0] mux1_out;
-        wire mux1_sel;
         wire [31:0] adder1_out;
         wire [31:0] ramI_out;
+    //IF-ID Reg Variables
+        wire [31:0] pplr1_out;
+        wire [31:0] pplr1_pc_out;
+        wire [31:0] pplr1_cpu_sig;
+        wire pplr1_linkout;
     //ID variables
         wire [31:0] adder2_out;
-        wire [31:0] pc_out;
         wire [31:0] mux2_out;
         wire [31:0] mux3_out;
         wire [31:0] mux4_out;
         wire [12:0] mux5_out;
         wire [31:0] signExt1_out;
+        wire [31:0] regfile_out_1;
+        wire [31:0] regfile_out_2;
+        wire [31:0] regfile_out_3;
+        wire [31:0] regfile_pc_out;
     //EXE variables
         wire [31:0] mux6_out;
         wire mux7_out;
@@ -1050,32 +1246,31 @@ module pipelinePU;
         wire[1:0] hzd_fwd_fwd_PB;
         wire[1:0] hzd_fwd_fwd_PD;
     //Control Unit variables
+        wire [12:0] cpu_out;
+        wire cpu_ID_B_out;
+        wire cpu_ID_RF_clear;
+//=================================================================================//
     //Instruction Fetch
-        mux2x1_32 mux1(mux1_out, mux1_sel, adder2_out, adder1_out);
-            //output to register
-        adder adder1(adder1_out, pc_out, 32'h04, global_clk);
-            // output to register
-            // output to previous mux *DONE*
-        instRAM256x8 ramI(ramI_out, pc_out);
-            // output to register
-
+        mux2x1_32 mux1(mux1_out, cond_handler_B, adder2_out, adder1_out);
+        adder adder1(adder1_out, regfile_pc_out, 32'h04, global_clk);
+        instRAM256x8 ramI(ramI_out, regfile_pc_out);
+        pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_linkout, global_clk, hzd_fwd_LE_IF, cond_handler_L, 
+        ramI_out, mux1_out, adder1_out);
     //Instruction Decode
-        //register file
-            //output to previous phase instruction RAM
-            //output to mux1
-            //output to mux2
-            //output to mux3
-        mux4x1_32 mux2(mux2_out,,, alu1_out, mux8_out, mux9_out);
+        registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3, regfile_pc_out, global_clk, /*From final reg*/, 
+        cpu_ID_RF_clear, hzd_fwd_LE_PC, /*to be fixed, several missing FROM REG*/); 
+        //(output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN)
+        
+        mux4x1_32 mux2(mux2_out, , regfile_out_1, alu1_out, mux8_out, mux9_out);
             //output to register
-        mux4x1_32 mux3(mux3_out,,, alu1_out, mux8_out, mux9_out);
+        mux4x1_32 mux3(mux3_out, , regfile_out_2, alu1_out, mux8_out, mux9_out);
             //output to register
-        mux4x1_32 mux4(mux4_out,,, alu1_out, mux8_out, mux9_out);
+        mux4x1_32 mux4(mux4_out, , regfile_out_3, alu1_out, mux8_out, mux9_out);
             //output to register
         sign_ext signExt1(signExt1_out, /*FROM REG*/);
-            //output to adder2
             //output to previous phase mux
         adder adder2(adder2_out, signExt1_out, /*FROM REG*/);
-        mux2x1_13 mux5(mux5_out, 13'h0, /*FROM CPU*/);
+        mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out);
     //Execution
         shifter shifter1(shifter1_out, shifter1_carry_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, flag_reg1_c_in);
 
@@ -1097,5 +1292,7 @@ module pipelinePU;
     //Hazard/Forwarding
         hazard_fwd_unit hzd_fwd_u1(hzd_fwd_fwd_PA, hzd_fwd_fwd_PB, hzd_fwd_fwd_PC, hzd_fwd_NOP, hzd_fwd_LE_IF, hzd_fwd_LE_PC /*MANY INPUTS FROM REG*/);
     //Control Unit
+        cpu controlUnit1(cpu_out, cpu_ID_B_out, cpu_ID_RF_clear, /*From REG*/, cond_handler_cond);
+        (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, input Cond);
 endmodule
 
