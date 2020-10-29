@@ -565,16 +565,18 @@ end
 //son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
 
 //ID/EX register
-module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, output reg singleBitOut, output reg [3:0] outRDBits,input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
-always @ (posedge clk);
-reg shift_imm;
-reg [3:0] OP;
-reg EXloadInst;
-reg EXRFEnable;
-reg NextReg1;
-reg NextReg2;
-reg [1:0] NextReg2Bit;/////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
-reg [1:0] Msignal;
+module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, input [11:0] bitsFromPRegister, output reg [1:0] NextReg2Bit, Msignal,  input [3:0] RDBits, input clk, singleBit, input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
+
+// reg shift_imm;
+// reg [3:0] OP;
+// reg EXloadInst;
+// reg EXRFEnable;
+// reg NextReg1;
+// reg NextReg2;
+// reg [1:0] NextReg2Bit;
+// reg [1:0] Msignal;
+
+/////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
 //temp variable
 reg [31:0] temp;
 always @(posedge clk)
@@ -614,12 +616,12 @@ end
 endmodule
 
 // //EX/MEM register
-module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut ,input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
-reg EXloadInst2;
-reg EXRFEnable2;
-reg Data_Mem_EN;
-reg Data_MEM_R_W;
-reg [1:0] AccessModeDataMemory;
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
+// reg EXloadInst2;
+// reg EXRFEnable2;
+// reg Data_Mem_EN;
+// reg Data_MEM_R_W;
+// reg [1:0] AccessModeDataMemory;
 
 reg [31:0] temp;
 always @ (posedge clk)
@@ -648,9 +650,9 @@ end
 endmodule
 
 // //MEM/WB register
-module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0] Enablers);
-reg EXloadInst3;
-reg EXRFEnable3;
+module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, output reg EXloadInst3, EXRFEnable3, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0] Enablers);
+// reg EXloadInst3;
+// reg EXRFEnable3;
 
 reg [31:0] temp;
 
