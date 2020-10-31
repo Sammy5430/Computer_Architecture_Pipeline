@@ -1071,21 +1071,24 @@ endmodule
 
 //ID/EX register
 module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, 
-output reg singleBitOut, output reg [3:0] outRDBits,input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, 
-input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
-  always @ (posedge clk);
-  reg shift_imm;
-  reg [3:0] OP;
-  reg EXloadInst;
-  reg EXRFEnable;
-  reg NextReg1;
-  reg NextReg2;
-  reg [1:0] NextReg2Bit;/////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
-  reg [1:0] Msignal;
-  //temp variable
-  reg [31:0] temp;
-  always @(posedge clk)
-  begin
+output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, 
+input [11:0] bitsFromPRegister, output reg [1:0] NextReg2Bit, Msignal,  input [3:0] RDBits, input clk, singleBit, 
+input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals);
+
+    // reg shift_imm;
+    // reg [3:0] OP;
+    // reg EXloadInst;
+    // reg EXRFEnable;
+    // reg NextReg1;
+    // reg NextReg2;
+    // reg [1:0] NextReg2Bit;
+    // reg [1:0] Msignal;
+
+    /////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
+    //temp variable
+    reg [31:0] temp;
+    always @(posedge clk)
+    begin
     directRegister = outMux1;
     aluConnection = outMux2;
     shiftExtender = outMux3;
@@ -1117,21 +1120,22 @@ input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
     temp = muxSignals & 32'b00000000000000000000000000000011;
     Msignal = temp;
 
-  end
+    end
 endmodule
 
 //EX/MEM register
-module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut ,input clk, 
-input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
-  reg EXloadInst2;
-  reg EXRFEnable2;
-  reg Data_Mem_EN;
-  reg Data_MEM_R_W;
-  reg [1:0] AccessModeDataMemory;
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, 
+output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W, 
+input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister);
+    // reg EXloadInst2;
+    // reg EXRFEnable2;
+    // reg Data_Mem_EN;
+    // reg Data_MEM_R_W;
+    // reg [1:0] AccessModeDataMemory;
 
-  reg [31:0] temp;
-  always @ (posedge clk)
-  begin
+    reg [31:0] temp;
+    always @ (posedge clk)
+    begin
     outAluSignal = aluOut;
     data_Mem = pastReg;
     RDSignalOut = RDSignal;
@@ -1152,19 +1156,20 @@ input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input [5:0] previousregister
     temp = previousregister & 32'b00000000000000000000000000000011;
     AccessModeDataMemory = temp;
 
-  end
+    end
 endmodule
 
 //MEM/WB register
-module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, input clk, 
-input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0] Enablers);
-  reg EXloadInst3;
-  reg EXRFEnable3;
+module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, 
+output reg EXloadInst3, EXRFEnable3, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, 
+input [1:0] Enablers);
+    // reg EXloadInst3;
+    // reg EXRFEnable3;
 
-  reg [31:0] temp;
+    reg [31:0] temp;
 
-  always @ (posedge clk)
-  begin
+    always @ (posedge clk)
+    begin
     Data_mem_to_mux = Data_mem_out;
     SignalFromEX = signalFormEXIN;
     LastRDSignal = lAstRDsignalIn;
@@ -1174,7 +1179,7 @@ input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input [1:0]
 
     temp = Enablers & 32'b00000000000000000000000000000001;
     EXRFEnable3 = temp;
-  end
+    end
 endmodule
 
 
@@ -1231,6 +1236,21 @@ module pipelinePU;
         wire [31:0] regfile_out_2;
         wire [31:0] regfile_out_3;
         wire [31:0] regfile_pc_out;
+    //ID/EXE variables
+        wire [31:0] pplr2_ramD_data;
+        wire [31:0] pplr2_alu_A;
+        wire [31:0] pplr2_shift_RM;
+        wire [11:0] pplr2_shifter_L;
+        wire pplr2_flag_reg_S;
+        wire [3:0] pplr2_RD;
+        wire pplr2_shift_imm;
+        wire [3:0] pplr2_ALU_op;
+        wire pplr2_load_inst;
+        wire pplr2_RF_enable;
+        wire pplr2_ramD_enable;
+        wire pplr2_ramD_RW;
+        wire [1:0] pplr2_ramD_mode;
+        wire [1:0] pplr2_shift_mode;
     //EXE variables
         wire [31:0] mux6_out;
         wire mux7_out;
@@ -1239,7 +1259,7 @@ module pipelinePU;
         wire [31:0] alu1_out;
         wire [3:0] alu1_cc;
         wire [3:0] flag_reg1_out;
-        wire flag_reg1_c_in;
+        wire flag_reg1_c_in;    
     //MEM variables
         wire[31:0] ramD_out;
         wire[31:0] mux8_out;
@@ -1271,16 +1291,18 @@ module pipelinePU;
         
     //Instruction Decode
         registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3, regfile_pc_out, global_clk, /*From final reg*/, 
-        cpu_ID_RF_clear, hzd_fwd_LE_PC, pplr1_RA, pplr1_RB, pplr1_RD,/*ddata*/,/*datain*/, pplr1_out);
+        cpu_ID_RF_clear, hzd_fwd_LE_PC, pplr1_RA, pplr1_RB, pplr1_RD,/*ddata*/, mux9_out, pplr1_out);
         mux4x1_32 mux2(mux2_out, hzd_fwd_fwd_PA, regfile_out_1, alu1_out, mux8_out, mux9_out);
-            //output to register
         mux4x1_32 mux3(mux3_out, hzd_fwd_fwd_PB, regfile_out_2, alu1_out, mux8_out, mux9_out);
-            //output to register
         mux4x1_32 mux4(mux4_out, hzd_fwd_fwd_PD, regfile_out_3, alu1_out, mux8_out, mux9_out);
-            //output to register
         sign_ext signExt1(signExt1_out, pplr1_extender_in);
         adder adder2(adder2_out, signExt1_out, pplr1_pc_out);
-        mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out);
+        mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out); //mux5_out contains control signals
+        pipeline_registers_2 pplr2(pplr2_ramD_data, pplr2_alu_A, pplr2_shift_RM, pplr2_shifter_L, pplr2_flag_reg_S,
+        pplr2_shift_imm, pplr2_load_inst, pplr2_RF_enable, pplr2_ramD_enable, pplr2_ramD_RW, pplr2_RD, pplr2_ALU_op,
+        pplr2_shifter_L, pplr2_ramD_mode, pplr2_shift_mode, pplr1_RD, global_clk, pplr1_flag_reg_S,
+        mux2_out, mux3_out, mux4_out, mux5_out); 
+
     //Execution
         shifter shifter1(shifter1_out, shifter1_carry_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, flag_reg1_c_in);
 
