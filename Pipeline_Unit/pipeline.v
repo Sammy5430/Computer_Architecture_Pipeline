@@ -1019,51 +1019,54 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr);
 endmodule
 
 //IF/ID register
-module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg LinkOut, 
-input clk, LD, LinkIn, input [31:0] InInstructionMEM, InPCAdress, INNextPC);
-  reg [4:0] toConditionH;
-  reg [23:0] toSignextender;
-  reg bitToCondition;
-  reg [3:0] RA;
-  reg [3:0] RB;
-  reg [3:0] RD;
-  reg [11:0] directTonextregister;
-  reg oneBitToNextRegister;
-  //wire [31:0] toCPU;
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [4:0] toConditionH, 
+output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, 
+output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn, 
+input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+  // reg [4:0] toConditionH;
+  // reg [23:0] toSignextender;
+  // reg bitToCondition;
+  // reg [3:0] RA;
+  // reg [3:0] RB;
+  // reg [3:0] RD;
+  // reg [11:0] directTonextregister;
+  // reg oneBitToNextRegister;
+  // reg [31:0] toCPU;
+
   reg [31:0] temp;
 
   always @ (posedge clk, LD)
-    begin
-      PCNextout = INNextPC;
-      PCAdressOut = InPCAdress;
-      LinkOut = LinkIn;
+  begin
+  PCNextout = INNextPC;
+  PCAdressOut = InPCAdress;
+  LinkOut = LinkIn;
 
-      temp = InInstructionMEM & 32'b11111000000000000000000000000000;
-      toConditionH = temp >> 28;
+  temp = InInstructionMEM & 32'b11111000000000000000000000000000;
+  toConditionH = temp >> 28;
 
-      temp = InInstructionMEM & 32'b00000000111111111111111111111111;
-      toSignextender = temp;
+  temp = InInstructionMEM & 32'b00000000111111111111111111111111;
+  toSignextender = temp;
 
-      temp = InInstructionMEM & 32'b00000001000000000000000000000000;
-      bitToCondition = temp >> 24;
+  temp = InInstructionMEM & 32'b00000001000000000000000000000000;
+  bitToCondition = temp >> 24;
 
-      temp = InInstructionMEM & 32'b00000000000011110000000000000000;
-      RA = temp >> 16;
+  temp = InInstructionMEM & 32'b00000000000011110000000000000000;
+  RA = temp >> 16;
 
-      temp = InInstructionMEM & 32'b00000000000000000000000000001111;
-      RB = temp;
+  temp = InInstructionMEM & 32'b00000000000000000000000000001111;
+  RB = temp;
 
-      temp = InInstructionMEM & 32'b00000000000000001111000000000000;
-      RD = temp >> 12;
+  temp = InInstructionMEM & 32'b00000000000000001111000000000000;
+  RD = temp >> 12;
 
-      temp = InInstructionMEM & 32'b00000000000000000000111111111111;
-      directTonextregister = temp;
+  temp = InInstructionMEM & 32'b00000000000000000000111111111111;
+  directTonextregister = temp;
 
-      temp = InInstructionMEM & 32'b00000000000100000000000000000000;
-      oneBitToNextRegister = temp >> 20;
+  temp = InInstructionMEM & 32'b00000000000100000000000000000000;
+  oneBitToNextRegister = temp >> 20;
 
 
-    end
+  end
 endmodule
 
 //ID/EX register
@@ -1208,7 +1211,15 @@ module pipelinePU;
         wire [31:0] pplr1_out;
         wire [31:0] pplr1_pc_out;
         wire [31:0] pplr1_cpu_sig;
+        wire [4:0] pplr1_cond_in;
+        wire [23:0] pplr1_extender_in;
         wire pplr1_linkout;
+        wire pplr1_cond_IR_L;
+        wire [3:0] pplr1_RA;
+        wire [3:0] pplr1_RB;
+        wire [3:0] pplr1_RD;
+        wire [11:0] pplr1_shifter_L;
+        wire pplr1_flag_reg_S;
     //ID variables
         wire [31:0] adder2_out;
         wire [31:0] mux2_out;
@@ -1254,22 +1265,21 @@ module pipelinePU;
         mux2x1_32 mux1(mux1_out, cond_handler_B, adder2_out, adder1_out);
         adder adder1(adder1_out, regfile_pc_out, 32'h04, global_clk);
         instRAM256x8 ramI(ramI_out, regfile_pc_out);
-        pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_linkout, global_clk, hzd_fwd_LE_IF, cond_handler_L, 
-        ramI_out, mux1_out, adder1_out);
+        pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_cond_in, pplr1_extender_in,
+        pplr1_cond_IR_L, pplr1_RA, pplr1_RB, pplr1_RD, pplr1_linkout, pplr1_shifter_L, pplr1_flag_reg_S, global_clk, 
+        hzd_fwd_LE_IF, cond_handler_L, ramI_out, mux1_out, adder1_out);
+        
     //Instruction Decode
         registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3, regfile_pc_out, global_clk, /*From final reg*/, 
-        cpu_ID_RF_clear, hzd_fwd_LE_PC, /*to be fixed, several missing FROM REG*/); 
-        //(output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN)
-        
-        mux4x1_32 mux2(mux2_out, , regfile_out_1, alu1_out, mux8_out, mux9_out);
+        cpu_ID_RF_clear, hzd_fwd_LE_PC, pplr1_RA, pplr1_RB, pplr1_RD,/*ddata*/,/*datain*/, pplr1_out);
+        mux4x1_32 mux2(mux2_out, hzd_fwd_fwd_PA, regfile_out_1, alu1_out, mux8_out, mux9_out);
             //output to register
-        mux4x1_32 mux3(mux3_out, , regfile_out_2, alu1_out, mux8_out, mux9_out);
+        mux4x1_32 mux3(mux3_out, hzd_fwd_fwd_PB, regfile_out_2, alu1_out, mux8_out, mux9_out);
             //output to register
-        mux4x1_32 mux4(mux4_out, , regfile_out_3, alu1_out, mux8_out, mux9_out);
+        mux4x1_32 mux4(mux4_out, hzd_fwd_fwd_PD, regfile_out_3, alu1_out, mux8_out, mux9_out);
             //output to register
-        sign_ext signExt1(signExt1_out, /*FROM REG*/);
-            //output to previous phase mux
-        adder adder2(adder2_out, signExt1_out, /*FROM REG*/);
+        sign_ext signExt1(signExt1_out, pplr1_extender_in);
+        adder adder2(adder2_out, signExt1_out, pplr1_pc_out);
         mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out);
     //Execution
         shifter shifter1(shifter1_out, shifter1_carry_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, flag_reg1_c_in);
