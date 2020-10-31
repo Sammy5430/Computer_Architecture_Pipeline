@@ -616,7 +616,7 @@ end
 endmodule
 
 // //EX/MEM register
-module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, AccessModeDataMemoryin);
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, input [1:0] AccessModeDataMemoryin);
 // reg EXloadInst2;
 // reg EXRFEnable2;
 // reg Data_Mem_EN;
@@ -673,6 +673,6 @@ begin
 
   // temp = Enablers & 32'b00000000000000000000000000000001;
   // EXRFEnable3 = temp;
-  
+
 end
 endmodule
