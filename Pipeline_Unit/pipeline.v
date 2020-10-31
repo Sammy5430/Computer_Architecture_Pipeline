@@ -1019,11 +1019,11 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr);
 endmodule
 
 //IF/ID register
-module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [4:0] toConditionH, 
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [3:0] toConditionH, 
 output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, 
 output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn, 
 input [31:0] InInstructionMEM, InPCAdress, INNextPC);
-  // reg [4:0] toConditionH;
+  // reg [3:0] toConditionH;
   // reg [23:0] toSignextender;
   // reg bitToCondition;
   // reg [3:0] RA;
@@ -1041,7 +1041,7 @@ input [31:0] InInstructionMEM, InPCAdress, INNextPC);
   PCAdressOut = InPCAdress;
   LinkOut = LinkIn;
 
-  temp = InInstructionMEM & 32'b11111000000000000000000000000000;
+  temp = InInstructionMEM & 32'b11110000000000000000000000000000;
   toConditionH = temp >> 28;
 
   temp = InInstructionMEM & 32'b00000000111111111111111111111111;
@@ -1216,7 +1216,7 @@ module pipelinePU;
         wire [31:0] pplr1_out;
         wire [31:0] pplr1_pc_out;
         wire [31:0] pplr1_cpu_sig;
-        wire [4:0] pplr1_cond_in;
+        wire [3:0] pplr1_cond_in;
         wire [23:0] pplr1_extender_in;
         wire pplr1_linkout;
         wire pplr1_cond_IR_L;
@@ -1236,7 +1236,7 @@ module pipelinePU;
         wire [31:0] regfile_out_2;
         wire [31:0] regfile_out_3;
         wire [31:0] regfile_pc_out;
-    //ID/EXE variables
+    //ID-EXE variables
         wire [31:0] pplr2_ramD_data;
         wire [31:0] pplr2_alu_A;
         wire [31:0] pplr2_shift_RM;
@@ -1259,10 +1259,25 @@ module pipelinePU;
         wire [31:0] alu1_out;
         wire [3:0] alu1_cc;
         wire [3:0] flag_reg1_out;
-        wire flag_reg1_c_in;    
+        wire flag_reg1_c_in;  
+    //EXE-MEM variables
+        wire [31:0] pplr3_ramD_address;
+        wire [31:0] pplr3_ramD_data;
+        wire [3:0] pplr3_RD;
+        wire [1:0] pplr3_ramD_mode;
+        wire pplr3_load_inst;
+        wire pplr3_RF_enable;
+        wire pplr3_ramD_enable;
+        wire pplr3_ramD_RW;
     //MEM variables
         wire[31:0] ramD_out;
         wire[31:0] mux8_out;
+    //MEM-WB variables
+        wire [31:0] pplr4_ramD_address;
+        wire [31:0] pplr4_ramD_out;
+        wire [3:0] pplr4_RD;
+        wire pplr4_load_inst;
+        wire pplr4_RF_enable;
     //WB variables
         wire[31:0] mux9_out;
     //Condition Handling variables
@@ -1290,41 +1305,50 @@ module pipelinePU;
         hzd_fwd_LE_IF, cond_handler_L, ramI_out, mux1_out, adder1_out);
         
     //Instruction Decode
-        registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3, regfile_pc_out, global_clk, /*From final reg*/, 
-        cpu_ID_RF_clear, hzd_fwd_LE_PC, pplr1_RA, pplr1_RB, pplr1_RD,/*ddata*/, mux9_out, pplr1_out);
+        registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3, regfile_pc_out, global_clk, pplr4_RF_enable, 
+        cpu_ID_RF_clear, hzd_fwd_LE_PC, pplr1_RA, pplr1_RB, pplr1_RD, pplr4_RD, mux9_out, pplr1_out);
         mux4x1_32 mux2(mux2_out, hzd_fwd_fwd_PA, regfile_out_1, alu1_out, mux8_out, mux9_out);
         mux4x1_32 mux3(mux3_out, hzd_fwd_fwd_PB, regfile_out_2, alu1_out, mux8_out, mux9_out);
         mux4x1_32 mux4(mux4_out, hzd_fwd_fwd_PD, regfile_out_3, alu1_out, mux8_out, mux9_out);
         sign_ext signExt1(signExt1_out, pplr1_extender_in);
         adder adder2(adder2_out, signExt1_out, pplr1_pc_out);
-        mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out); //mux5_out contains control signals
+        mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out);      //mux5_out contains control signals
         pipeline_registers_2 pplr2(pplr2_ramD_data, pplr2_alu_A, pplr2_shift_RM, pplr2_shifter_L, pplr2_flag_reg_S,
         pplr2_shift_imm, pplr2_load_inst, pplr2_RF_enable, pplr2_ramD_enable, pplr2_ramD_RW, pplr2_RD, pplr2_ALU_op,
         pplr2_shifter_L, pplr2_ramD_mode, pplr2_shift_mode, pplr1_RD, global_clk, pplr1_flag_reg_S,
         mux2_out, mux3_out, mux4_out, mux5_out); 
 
     //Execution
-        shifter shifter1(shifter1_out, shifter1_carry_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, flag_reg1_c_in);
+        shifter shifter1(shifter1_out, shifter1_carry_out, pplr2_shift_RM, pplr2_shifter_L, pplr2_shift_mode, flag_reg1_c_in);        
+        mux2x1_32 mux6(mux6_out, pplr2_shift_imm, pplr2_shift_RM, shifter1_out);
+        mux2x1_1 mux7(mux7_out, pplr2_shift_imm, 1'b0, shifter1_carry_out);
+        alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out);
+        flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, pplr2_flag_reg_S);
 
-        mux2x1_32 mux6(mux6_out, /*FROM REG(ID_shift_imm)*/, /*FROM REG*/, shifter1_out);
+        pipeline_registers_3 pplr3(pplr3_ramD_address, pplr3_ramD_data, pplr3_RD, pplr3_ramD_mode, pplr3_load_inst,
+        pplr3_RF_enable, pplr3_ramD_enable, pplr3_ramD_RW, global_clk, alu1_out, pplr2_ramD_data, pplr2_RD,
+        /*needs correction to receive 5 separate signals*/);
 
-        mux2x1_1 mux7(mux7_out, /*FROM REG (ID_shift_imm)*/, 1'b0, shifter1_carry_out);
-
-        alu alu1(alu1_out, alu1_cc, /*FROM REG*/, mux6_out, /*FROM REG*/, flag_reg1_c_in, shifter1_carry_out);
-
-        flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, /*FROM REG*/);
     //Memory 
-        dataRAM256x8 ramD(ramD_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/,);
-            //output to register
-        mux2x1_32 mux8(mux8_out, /*FROM REG*/, ramD_out, /*FROM REG*/);
+        dataRAM256x8 ramD(ramD_out, pplr3_RF_enable, pplr3_ramD_RW, pplr3_ramD_address, pplr3_ramD_data, pplr3_ramD_mode);
+        mux2x1_32 mux8(mux8_out, pplr3_load_inst, ramD_out, pplr3_ramD_address);
+        pipeline_registers_4 pplr4(pplr4_ramD_out, pplr4_ramD_address, pplr4_RD, pplr4_load_inst, pplr4_RF_enable, global_clk,
+        ramD_out, pplr3_ramD_address, pplr3_RD, /*needs correction to receive 2 separate signals*/);
+
     //Writeback
-        mux2x1_32 mux9(mux9_out, /*FROM REG*/, /*FROM REG*/, /*FROM REG*/);
+        mux2x1_32 mux9(mux9_out, pplr4_load_inst, pplr4_ramD_out, pplr4_ramD_address);
+
     //Condition Handling
-        condition_handler cond_handler1(cond_handler_cond, cond_handler_B, cond_handler_L, flag_reg1_out, /*FROM REG*/, /*FROM CPU*/, /*FROM REG*/);
+        condition_handler cond_handler1(cond_handler_cond, cond_handler_B, cond_handler_L, flag_reg1_out, pplr1_cond_in, 
+        cpu_ID_B_out, pplr1_cond_IR_L);
+
     //Hazard/Forwarding
-        hazard_fwd_unit hzd_fwd_u1(hzd_fwd_fwd_PA, hzd_fwd_fwd_PB, hzd_fwd_fwd_PC, hzd_fwd_NOP, hzd_fwd_LE_IF, hzd_fwd_LE_PC /*MANY INPUTS FROM REG*/);
+        hazard_fwd_unit hzd_fwd_u1(hzd_fwd_fwd_PA, hzd_fwd_fwd_PB, hzd_fwd_fwd_PD, hzd_fwd_NOP, hzd_fwd_LE_IF, hzd_fwd_LE_PC,
+        pplr1_RA, pplr1_RB, /*needs correction to handle pplr1_RD*/, pplr2_RD, pplr3_RD, pplr4_RD, pplr2_RF_enable, 
+        pplr3_RF_enable, pplr4_RF_enable, pplr2_load_inst);
+
     //Control Unit
-        cpu controlUnit1(cpu_out, cpu_ID_B_out, cpu_ID_RF_clear, /*From REG*/, cond_handler_cond);
+        cpu controlUnit1(cpu_out, cpu_ID_B_out, cpu_ID_RF_clear, pplr1_cpu_sig, cond_handler_cond);
         (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, input Cond);
 endmodule
 
