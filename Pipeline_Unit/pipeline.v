@@ -85,12 +85,12 @@ input [31:0] datain, PCIN);
     adder pcadder(addedPCin, PCIN, 32'd4, clk);
     mux2x1_32 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-    registers R15 (data[15], chosenData, enables[15-15],clk, clr);// decision done
+    registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
 
     // //Multiplexers
-    mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-    mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-    mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+    mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+    mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
 endmodule
 
 module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s);
@@ -106,10 +106,10 @@ module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in,
         end
 endmodule
 
-module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
+module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address, input clk);
     reg[7:0] Mem[0:255];
     reg[31:0] temp;
-    always@(Address)
+    always@(Address,posedge clk)
         begin
             if(Address > 255)
                 $display("Invalid address. Address must be between 0 and 255.");
@@ -1156,14 +1156,6 @@ output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  
 input [11:0] bitsFromPRegister, output reg [1:0] NextReg2Bit, Msignal,  input [3:0] RDBits, input clk, singleBit, 
 input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals);
 
-    // reg shift_imm;
-    // reg [3:0] OP;
-    // reg EXloadInst;
-    // reg EXRFEnable;
-    // reg NextReg1;
-    // reg NextReg2;
-    // reg [1:0] NextReg2Bit;
-    // reg [1:0] Msignal;
 
     /////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
     //temp variable
@@ -1209,11 +1201,6 @@ module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg
 output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , 
 input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, 
 Data_Mem_EN_in, Data_MEM_R_W_in, input[1:0] AccessModeDataMemoryin);
-    // reg EXloadInst2;
-    // reg EXRFEnable2;
-    // reg Data_Mem_EN;
-    // reg Data_MEM_R_W;
-    // reg [1:0] AccessModeDataMemory;
 
     reg [31:0] temp;
     always @ (posedge clk)
@@ -1227,21 +1214,6 @@ Data_Mem_EN_in, Data_MEM_R_W_in, input[1:0] AccessModeDataMemoryin);
     Data_MEM_R_W = Data_MEM_R_W_in;
     AccessModeDataMemory = AccessModeDataMemoryin;
 
-    // temp = previousregister & 32'b00000000000000000000000000100000;
-    // EXloadInst2 = temp >> 5;
-
-    // temp = previousregister & 32'b00000000000000000000000000010000;
-    // EXRFEnable2 = temp >> 4;
-
-    // temp = previousregister & 32'b00000000000000000000000000001000;
-    // Data_Mem_EN = temp >> 3;
-
-    // temp = previousregister & 32'b00000000000000000000000000000100;
-    // Data_MEM_R_W = temp >> 2;
-
-    // temp = previousregister & 32'b00000000000000000000000000000011;
-    // AccessModeDataMemory = temp;
-
     end
 endmodule
 
@@ -1249,8 +1221,6 @@ endmodule
 module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, 
 output reg EXloadInst3, EXRFEnable3, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, 
 input EXloadInst3in, EXRFEnable3in);
-    // reg EXloadInst3;
-    // reg EXRFEnable3;
 
     reg [31:0] temp;
 
@@ -1262,17 +1232,10 @@ input EXloadInst3in, EXRFEnable3in);
     EXloadInst3 = EXloadInst3in;
     EXRFEnable3 = EXRFEnable3in;
 
-    // temp = Enablers & 32'b00000000000000000000000000000010;
-    // EXloadInst3 = temp >> 1;
-
-    // temp = Enablers & 32'b00000000000000000000000000000001;
-    // EXRFEnable3 = temp;
-    
     end
 endmodule
 
 module pipelinePU;
-    
     //System Variables
         reg global_clk;
     //IF variables
@@ -1366,7 +1329,7 @@ module pipelinePU;
     //Instruction Fetch
         mux2x1_32 mux1(mux1_out, cond_handler_B, adder2_out, adder1_out);
         adder adder1(adder1_out, regfile_pc_out, 32'h04, global_clk);
-        instRAM256x8 ramI(ramI_out, regfile_pc_out);
+        instRAM256x8 ramI(ramI_out, regfile_pc_out,global_clk);
         pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_cond_in, pplr1_extender_in,
         pplr1_cond_IR_L, pplr1_RA, pplr1_RB, pplr1_RD, pplr1_linkout, pplr1_shifter_L, pplr1_flag_reg_S, global_clk, 
         hzd_fwd_LE_IF, cond_handler_L, ramI_out, mux1_out, adder1_out);
@@ -1415,72 +1378,72 @@ module pipelinePU;
     //Control Unit
         cpu controlUnit1(cpu_out, cpu_ID_B_out, cpu_ID_RF_clear, pplr1_cpu_sig, cond_handler_cond);
 
-    //precharge Instruction RAM *TESTED*
-        integer I_inFile, I_code;
-        reg [31:0] I_Address;
-        reg [7:0] data;
-        initial
-            begin
-                I_inFile = $fopen("ramintr.txt","r");
-                I_Address = 32'b0;
-                $display("");
-                $display("Instruction RAM was precharged with the following data:");
-                $display("        Address   Data");
-                while(!$feof(I_inFile))
-                    begin
-                        //#1 
-                        I_code = $fscanf(I_inFile, "%b", data);
-                        ramI.Mem[I_Address] = data;
-                        //#7 
-                        $display("%d        %b", I_Address, data);
-                        //#2 
-                        I_Address = I_Address + 1; 
-                    end
-                $fclose(I_inFile);
-            end
-        initial
-            #10
-            begin
-                //reset system using nops
-                $display("");
-                $display("Testing Pipeline Unit:");
-                global_clk= 1'b0;
-                //I_Address = 32'b0;
-                repeat (3)
-                    begin
-                        global_clk = 1'b1;
-                        $display("");
-                        $display("PC %d", regfile_pc_out);
-                        $display("ID");
-                            $display("   Shift_imm %b", cpu_out[0]);
-                            $display("   ALU_op %b", cpu_out[1]);
-                            $display("   Load_instr %b", cpu_out[2]);
-                            $display("   RF_Enable %b", cpu_out[3]);
-                            $display("   Data_Mem_Enable %b", cpu_out[4]);
-                            $display("   Data_Mem_RW %b", cpu_out[5]);
-                            $display("   Data_Mem_Mode %b", cpu_out[6]);
-                            $display("   Shift_Mode %b", cpu_out[7]);
-                        $display("EXE");
-                            $display("   Shift_imm %b", pplr2_shift_imm);
-                            $display("   ALU_op %b", pplr2_ALU_op);
-                            $display("   Load_instr %b", pplr2_load_inst);
-                            $display("   RF_Enable %b", pplr2_RF_enable);
-                            $display("   Data_Mem_Enable %b", pplr2_ramD_enable);
-                            $display("   Data_Mem_RW %b", pplr2_ramD_RW);
-                            $display("   Data_Mem_Mode %b", pplr2_ramD_mode);
-                            $display("   Shift_Mode %b", pplr2_shift_mode);
-                        $display("MEM");
-                            $display("   Load_instr %b", pplr3_load_inst);
-                            $display("   RF_Enable %b", pplr3_RF_enable);
-                            $display("   Data_Mem_Enable %b", pplr3_ramD_enable);
-                            $display("   Data_Mem_RW %b", pplr3_ramD_RW);
-                            $display("   Data_Mem_Mode %b", pplr3_ramD_mode);
-                        $display("WB");
-                            $display("   Load_instr %b", pplr4_load_inst);
-                            $display("   RF_Enable %b", pplr4_RF_enable);
-                        //I_Address = I_Address + 1;
-                        global_clk = 1'b0;
-                    end
-            end
-
+    //TEST PIPELINE UNIT
+        //Pre-Charge *Tested*
+            integer I_inFile, I_code;
+            reg [31:0] I_Address;
+            reg [7:0] data;
+            initial
+                begin
+                    I_inFile = $fopen("ramintr.txt","r");
+                    I_Address = 32'b0;
+                    $display("");
+                    $display("Instruction RAM was precharged with the following data:");
+                    $display("        Address   Data");
+                    while(!$feof(I_inFile))
+                        begin
+                            //#1 
+                            I_code = $fscanf(I_inFile, "%b", data);
+                            ramI.Mem[I_Address] = data;
+                            //#7 
+                            $display("%d        %b", I_Address, data);
+                            //#2 
+                            I_Address = I_Address + 1; 
+                        end
+                    $fclose(I_inFile);
+                end
+        //Tester        
+            initial
+                begin
+                    //TO DO: reset system using nops
+                    $display("");
+                    $display("");
+                    $display("Testing Pipeline Unit:");
+                    global_clk= 1'b0;
+                    repeat (15)
+                        begin
+                            #5 global_clk = 1'b1;
+                            $display("");
+                            $display("PC %d", regfile_pc_out);
+                            $display("ID");
+                                $display("   Shift_imm %b", cpu_out[12]);
+                                $display("   ALU_op %b", cpu_out[11:8]);
+                                $display("   Load_instr %b", cpu_out[7]);
+                                $display("   RF_Enable %b", cpu_out[6]);
+                                $display("   Data_Mem_Enable %b", cpu_out[5]);
+                                $display("   Data_Mem_RW %b", cpu_out[4]);
+                                $display("   Data_Mem_Mode %b", cpu_out[3:2]);
+                                $display("   Shift_Mode %b", cpu_out[1:0]);
+                            $display("EXE");
+                                $display("   Shift_imm %b", pplr2_shift_imm);
+                                $display("   ALU_op %b", pplr2_ALU_op);
+                                $display("   Load_instr %b", pplr2_load_inst);
+                                $display("   RF_Enable %b", pplr2_RF_enable);
+                                $display("   Data_Mem_Enable %b", pplr2_ramD_enable);
+                                $display("   Data_Mem_RW %b", pplr2_ramD_RW);
+                                $display("   Data_Mem_Mode %b", pplr2_ramD_mode);
+                                $display("   Shift_Mode %b", pplr2_shift_mode);
+                            $display("MEM");
+                                $display("   Load_instr %b", pplr3_load_inst);
+                                $display("   RF_Enable %b", pplr3_RF_enable);
+                                $display("   Data_Mem_Enable %b", pplr3_ramD_enable);
+                                $display("   Data_Mem_RW %b", pplr3_ramD_RW);
+                                $display("   Data_Mem_Mode %b", pplr3_ramD_mode);
+                            $display("WB");
+                                $display("   Load_instr %b", pplr4_load_inst);
+                                $display("   RF_Enable %b", pplr4_RF_enable);
+                            I_Address = I_Address + 1;
+                            #5 global_clk = 1'b0;
+                        end
+                end
 endmodule

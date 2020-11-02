@@ -209,7 +209,10 @@ registers R14 (data[14], datain, enables[15-14], clk, clr);
 adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
 mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-registers R15 (data[15], chosenData, enables[15-15],clk, clr);// decision done
+
+registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
+
+
 
 
 // registers R0 (data0, datain, en0, clk, clr);
@@ -240,9 +243,9 @@ registers R15 (data[15], chosenData, enables[15-15],clk, clr);// decision done
 
 
 // //Multiplexers
-mux16to1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-mux16to1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+mux16to1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+mux16to1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
 
 endmodule
 
@@ -616,7 +619,7 @@ end
 endmodule
 
 // //EX/MEM register
-module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, AccessModeDataMemoryin);
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, input [1:0] AccessModeDataMemoryin);
 // reg EXloadInst2;
 // reg EXRFEnable2;
 // reg Data_Mem_EN;
@@ -673,6 +676,6 @@ begin
 
   // temp = Enablers & 32'b00000000000000000000000000000001;
   // EXRFEnable3 = temp;
-  
+
 end
 endmodule
