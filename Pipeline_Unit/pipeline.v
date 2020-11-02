@@ -1391,7 +1391,6 @@ module pipelinePU;
         mux2x1_1 mux7(mux7_out, pplr2_shift_imm, 1'b0, shifter1_carry_out);
         alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out);
         flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, pplr2_flag_reg_S);
-
         pipeline_registers_3 pplr3(pplr3_ramD_address, pplr3_ramD_data, pplr3_RD, pplr3_ramD_mode, pplr3_load_inst,
         pplr3_RF_enable, pplr3_ramD_enable, pplr3_ramD_RW, global_clk, alu1_out, pplr2_ramD_data, pplr2_RD,
         pplr2_load_inst, pplr2_RF_enable, pplr2_ramD_enable, pplr2_ramD_RW, pplr2_ramD_mode);
@@ -1484,8 +1483,4 @@ module pipelinePU;
                     end
             end
 
-endmodule
-
-module testPPU;
-    
 endmodule
