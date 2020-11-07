@@ -85,7 +85,7 @@ input [31:0] datain, PCIN);
     adder pcadder(addedPCin, PCIN, 32'd4, clk);
     mux2x1_32 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-    registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
+    registers R15 (32'b0, chosenData, enables[15-15],clk, clr);// decision done
 
     // //Multiplexers
     mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
@@ -1235,6 +1235,8 @@ input EXloadInst3in, EXRFEnable3in);
     end
 endmodule
 
+
+
 module pipelinePU;
     //System Variables
         reg global_clk;
@@ -1392,12 +1394,9 @@ module pipelinePU;
                     $display("        Address   Data");
                     while(!$feof(I_inFile))
                         begin
-                            //#1 
                             I_code = $fscanf(I_inFile, "%b", data);
                             ramI.Mem[I_Address] = data;
-                            //#7 
                             $display("%d        %b", I_Address, data);
-                            //#2 
                             I_Address = I_Address + 1; 
                         end
                     $fclose(I_inFile);
@@ -1405,12 +1404,14 @@ module pipelinePU;
         //Tester        
             initial
                 begin
-                    //TO DO: reset system using nops
+                    //TO DO: reset system to set NOOP using reset signals on Pipeline registers
+                    //reset also sets PC to 0 on reg 15
+                    //initial for clock should be separate
                     $display("");
                     $display("");
                     $display("Testing Pipeline Unit:");
                     global_clk= 1'b0;
-                    repeat (15)
+                    repeat (9)
                         begin
                             #5 global_clk = 1'b1;
                             $display("");
