@@ -519,7 +519,7 @@ endcase
 endmodule
 
 //IF/ID register
-module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [4:0] toConditionH, output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn , input [31:0] InInstructionMEM, InPCAdress, INNextPC);
+module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, output reg [4:0] toConditionH, output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn , reset,  input [31:0] InInstructionMEM, InPCAdress, INNextPC);
 // reg [4:0] toConditionH;
 // reg [23:0] toSignextender;
 // reg bitToCondition;
@@ -532,7 +532,7 @@ module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout ,toCPU, ou
 
 reg [31:0] temp;
 
-always @ (posedge clk, LD)
+always @ (posedge clk, LD, !reset) // No se si este reset va asi. Si el valor del reset esta en 0 pues todo normal si cambia a 0 todo se  va a 0
 begin
  PCNextout = INNextPC;
  PCAdressOut = InPCAdress;
@@ -563,12 +563,28 @@ begin
  oneBitToNextRegister = temp >> 20;
 
 
+  if(reset)
+  begin
+    PCNextout = 32'b0;
+    PCAdressOut = 32'b0;
+    LinkOut = 32'b0;
+
+    toConditionH = 5'b0;
+    toSignextender = 24'b0;
+    bitToCondition = 1'b0;
+    RA = 4'b0;
+    RB = 4'b0;
+    RD = 4'b0;
+    directTonextregister = 12'b0;
+    oneBitToNextRegister = 1'b0;
+  end
+
 end
  endmodule
 //son diferentes caaca uno de los pipeline registers. El de instruction fetch y decoder tienen lde los demas no. Crear la base y spread a los demas. 
 
 //ID/EX register
-module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, input [11:0] bitsFromPRegister, output reg [1:0] NextReg2Bit, Msignal,  input [3:0] RDBits, input clk, singleBit, input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
+module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, input [11:0] bitsFromPRegister, output reg [1:0] NextReg2Bit, Msignal,  input [3:0] RDBits, input clk, singleBit, reset2, input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
 
 // reg shift_imm;
 // reg [3:0] OP;
@@ -582,7 +598,7 @@ module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shi
 /////////////////////////////////13bits son los que se estan separando, se pueden usar 13 en vez de 32?
 //temp variable
 reg [31:0] temp;
-always @(posedge clk)
+always @(posedge clk, !reset2)// Same as before
 begin
   directRegister = outMux1;
   aluConnection = outMux2;
@@ -615,11 +631,33 @@ begin
   temp = muxSignals & 32'b00000000000000000000000000000011;
   Msignal = temp;
 
+
+  if(reset2)
+  begin
+   directRegister = 32'b0;
+   aluConnection = 32'b0;
+   shiftExtender = 32'b0;
+   singleBitOut = 1'b0;
+   outRDBits = 4'b0;
+   LelevenShift = 12'b0;
+  
+   shift_imm = 1'b0;
+   OP = 4'b0;
+   EXloadInst = 1'b0;
+   EXRFEnable = 1'b0;
+   NextReg1 = 1'b0;
+   NextReg2 = 1'b0;
+   NextReg2Bit = 2'b0; 
+   Msignal = 2'b0;
+
+  end
+
+
 end
 endmodule
 
 // //EX/MEM register
-module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, input [1:0] AccessModeDataMemoryin);
+module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg [3:0] RDSignalOut, output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data_Mem_EN, Data_MEM_R_W , input clk, reset3, input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, input [1:0] AccessModeDataMemoryin);
 // reg EXloadInst2;
 // reg EXRFEnable2;
 // reg Data_Mem_EN;
@@ -627,7 +665,7 @@ module pipeline_registers_3(output reg [31:0] outAluSignal, data_Mem, output reg
 // reg [1:0] AccessModeDataMemory;
 
 reg [31:0] temp;
-always @ (posedge clk)
+always @ (posedge clk, !reset3)// Same here
 begin
   outAluSignal = aluOut;
   data_Mem = pastReg;
@@ -653,11 +691,26 @@ begin
   // temp = previousregister & 32'b00000000000000000000000000000011;
   // AccessModeDataMemory = temp;
 
+  if(reset3)
+  begin
+    outAluSignal = 32'b0;
+    data_Mem = 32'b0;
+    RDSignalOut = 4'b0;
+    EXloadInst2 = 1'b0;
+    EXRFEnable2 = 1'b0;
+    Data_Mem_EN = 1'b0;
+    Data_MEM_R_W = 1'b0;
+    AccessModeDataMemory = 2'b0;
+    
+  end
+
+
+
 end
 endmodule
 
 // //MEM/WB register
-module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, output reg EXloadInst3, EXRFEnable3, input clk, input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input EXloadInst3in, EXRFEnable3in);
+module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, output reg [3:0] LastRDSignal, output reg EXloadInst3, EXRFEnable3, input clk, reset4,  input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, input EXloadInst3in, EXRFEnable3in);
 // reg EXloadInst3;
 // reg EXRFEnable3;
 
@@ -676,6 +729,15 @@ begin
 
   // temp = Enablers & 32'b00000000000000000000000000000001;
   // EXRFEnable3 = temp;
+
+  if(reset4)
+  begin
+    Data_mem_to_mux = 32'b0;
+    SignalFromEX = 32'b0;
+    LastRDSignal = 4'b0;
+    EXloadInst3 = 1'b0;
+    EXRFEnable3 = 1'b0;
+  end
 
 end
 endmodule
