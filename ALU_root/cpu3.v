@@ -1,4 +1,4 @@
-module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, input Cond); 
+module cpu (output reg[3:0] OP, output reg [1:0] Sm, Mm, output reg ID_load_instr, ID_B, ID_RF, ID_RW, ID_Data, ID_shift_imm, ID_RF_clear, input [31:0] IR, input Cond); 
 	/*IS[12]=ID_shift
 	IS[11:8]=OP
 	IS[7]=load
@@ -8,14 +8,6 @@ module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, 
 	IS[3:2]=Mm
 	IS[1:0]=Sm
 	*/
-	reg [3:0] OP;
-	reg [1:0] Sm;
-	reg [1:0] Mm;
-	reg ID_load_instr;
-	reg ID_RF;
-    reg	ID_RW;
-	reg ID_Data;
-	reg ID_shift_imm;
 	always @ (IR)
 		begin
 		if (IR[31:0] == 32'h00000000||!Cond)//NOP
@@ -323,6 +315,5 @@ module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, 
 				ID_shift_imm <= 1'b0;
 				ID_RF_clear<=1'b0;
 			end
-		IS<={ID_shift_imm, OP, ID_load_instr, ID_RF, ID_Data, ID_RW, Mm, Sm};
 		end
 endmodule			
