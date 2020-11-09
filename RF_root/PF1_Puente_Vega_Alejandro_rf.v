@@ -173,13 +173,14 @@ endmodule
 
 //Register File module
 //All the modules will be implemented here and connected in the correct way except for the Adder
-module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
+module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, input [31:0] datain, PCIN);
 
 //Stating the wires
 wire [31:0] data [15:0];// data register output to connect to the multiplexers 
 wire [15:0] enables; // transfering the activation from the decoder to the registers
 wire [31:0] addedPCin; //from adder to mux2x1
 wire [31:0] chosenData;//mux to register 15
+reg [31:0] tempPCvalue;
 
 // wire [31:0] data0, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15;
 // wire en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15;
@@ -213,7 +214,13 @@ mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
 
 
-
+//reseting pc
+always @ (resetPC)
+if(resetPC == 1'b1)
+begin
+  tempPCvalue = 32'b0;
+end
+helper temporal ( addedPCin , tempPCvalue);
 
 // registers R0 (data0, datain, en0, clk, clr);
 // registers R1 (data1, datain, en1, clk, clr);
@@ -239,16 +246,19 @@ registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
 // mux16to1 muxO3(O3, s3, data0, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15);
 
 
-
-
-
 // //Multiplexers
 mux16to1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
 mux16to1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
 mux16to1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
 
+
 endmodule
 
+//helping module to pc
+module helper (output reg [31:0] change, input [31:0] incoming);
+always @ (incoming)
+change = incoming;
+endmodule
 //====================================================================================================================//
 //Testing & Demostration code:
 module test;
@@ -256,13 +266,13 @@ module test;
 //input:
 reg [3:0] s1, s2, s3, ddata;
 reg[31:0] datain, PCIN;
-reg clr, clk, lde;
+reg clr, clk, lde, resetPC;
 
 //Output:
 wire [31:0] O1, O2, O3, PCout;
 
 //registerfiel module
-registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, s1, s2, s3, ddata, datain, PCIN);
+registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, resestPC, s1, s2, s3, ddata, datain, PCIN);
 
 
 initial begin
@@ -502,7 +512,7 @@ endcase
 endmodule
 
 
-module mux2x1_7 (output reg [6:0] O, input s,  input [6:0] A, B );
+module mux2x1_7 (output reg [6:0] O, input s,  input [6:0] A, B );//hay que change it a 13
 always @(s, A, B)
     case(s)
       1'b0:  O = A;
