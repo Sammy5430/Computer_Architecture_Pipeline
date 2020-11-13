@@ -180,7 +180,10 @@ wire [31:0] data [15:0];// data register output to connect to the multiplexers
 wire [15:0] enables; // transfering the activation from the decoder to the registers
 wire [31:0] addedPCin; //from adder to mux2x1
 wire [31:0] chosenData;//mux to register 15
-reg [31:0] tempPCvalue;
+
+reg [31:0] tempPCvalue, R15out;
+reg tempPCld;
+reg [3:0] tempLDEB;
 
 // wire [31:0] data0, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15;
 // wire en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15;
@@ -207,20 +210,39 @@ registers R13 (data[13], datain, enables[15-13], clk, clr);
 registers R14 (data[14], datain, enables[15-14], clk, clr);
 
 //PC
-adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
-mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
+ adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
+// mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
 
-registers R15 (PCout, chosenData, enables[15-15],clk, clr);// decision done
+//assign PCout  = tempPCvalue;
+always @ (addedPCin, !resetPC)
+    if(ddata == 4'd15)
+          begin
+            tempPCvalue = datain;
+            tempPCld = 1;
+          end
+    else
+          begin
+            tempPCvalue = addedPCin;//PCIN
+            tempPCld = LE_PC;
 
+            if(resetPC)
+                begin
+                  tempPCvalue = 32'd0;
+                end
+          end
+   
 
-//reseting pc
-always @ (resetPC)
-if(resetPC == 1'b1)
-begin
-  tempPCvalue = 32'b0;
-end
-helper temporal ( addedPCin , tempPCvalue);
+registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
+assign PCout  = tempPCvalue;
+
+// //reseting pc
+// always @ (resetPC)
+// if(resetPC == 1'b1)
+// begin
+//   tempPCvalue = 32'b0;
+// end
+// helper temporal ( addedPCin , tempPCvalue);
 
 // registers R0 (data0, datain, en0, clk, clr);
 // registers R1 (data1, datain, en1, clk, clr);
@@ -266,40 +288,14 @@ module test;
 //input:
 reg [3:0] s1, s2, s3, ddata;
 reg[31:0] datain, PCIN;
-reg clr, clk, lde, resetPC;
+reg clr, clk, lde, resetPC1, LE_PC;
 
 //Output:
 wire [31:0] O1, O2, O3, PCout;
 
 //registerfiel module
-registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, resestPC, s1, s2, s3, ddata, datain, PCIN);
+registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, resetPC1, s1, s2, s3, ddata, datain, PCIN);
 
-
-initial begin
-
-//R0
-PCIN = 32'd0;
-//Load enable
-lde = 1'b1;
-//Decoder Data
-ddata = 4'b1010;
-//Entering Data
-datain = 32'h000A0000;
-//Select lines for mux
-s1 = 4'b1010;
-s2 = 4'b1010;
-s3 = 4'b1010;
-//Clock and clear
-clr = 1'b1;
-//clk = 1'b1;
-
-#20;
-//datain = 32'h000A00ff;
-
-
-
-
-end
 
 //Starting up the variables
 initial begin
@@ -307,6 +303,32 @@ initial begin
 clk = 1'b0;
 repeat (16) #5 clk = ~clk;
 end
+
+initial fork
+
+//R0
+PCIN = 32'd0;
+//Load enable
+lde = 1'b1;
+LE_PC = 1'b1;
+//Decoder Data
+ddata = 4'b1101;
+//Entering Data
+datain = 32'h00000001;
+//Select lines for mux
+s1 = 4'b1101;
+s2 = 4'b1111;
+s3 = 4'b1111;
+//Clock and clear
+clr = 1'b1;
+resetPC1 = 1'b0;
+//clk = 1'b1;
+
+#20;
+//datain = 32'h000A00ff;
+
+join
+
   
 // //R0
 // PCIN = 32'd0;
@@ -376,9 +398,40 @@ initial begin
 // $display("select1M: %b", s1);
 // $display("select2M: %b", s2);
 // $display("select3M: %b", s3);
-// $monitor("Output1: %h", O1);
-// $monitor("Output2 %h", O2);
-// $monitor("Output3 %h", O3);
+
+#10
+$display("tempPCld: %d", register_file.tempPCld);
+#10
+$display("LE_PC: %d", register_file.LE_PC);
+#10
+$display("PCIN: %d", register_file.PCIN);
+#10
+$display("PCIN+4: %d", register_file.addedPCin);
+#10
+$display("tempPCvalue: %d", register_file.tempPCvalue);
+#10
+$display("PCOUT: %d", register_file.PCout);
+#10
+$monitor("PCOUT: %d", PCout);
+#10
+
+
+
+$display("Output1: %h", O1);
+#10
+$monitor("Output2 %h", O2);
+#10
+$monitor("Output3 %h", O3);
+#10
+$monitor("PCout %h", PCout);
+
+
+// $display("Output1: %h", O1);
+// $display("Output2 %h", O2);
+// $display("Output3 %h", O3);
+
+// $display("PCout %h", PCout);
+
 
 // $display("");
 // $display("R2");
@@ -394,8 +447,8 @@ initial begin
 
 // $display("Load enable %b", lde);
 // $display("This is the value of PCIN: %d", PCIN);
-// //$display("clear %b", clr);
-// //$display("clock %b", clk);
+//$display("clear %b", clr);
+//$display("clock %b", clk);
 
 
 
@@ -463,8 +516,8 @@ begin
   CC_out = CC_in;
   C_in <= CC_in;
 
-$display("Input: %h", CC_in);
-$display("output: %h", CC_out);
+// $display("Input: %h", CC_in);
+// $display("output: %h", CC_out);
 
 end
 endmodule
@@ -472,10 +525,11 @@ endmodule
 //testing flag register woorks!!!
 // module testingflagresgister;
 //   wire [3:0] out ;
+//   wire cin;
 //   reg [3:0] in;
 //   reg lde;
   
-//   Flagregister testing_flag (out, in, lde);
+//   Flagregister testing_flag (out, cin,  in, lde);
   
 // initial begin
 
@@ -488,10 +542,10 @@ endmodule
  
 //   #1;
    
-//   $display("Input: %h", in);
-//   $display("output: %h", out);
+//   $display("Input: %b", in);
+//   $display("output: %b", out);
 
-//   $display("Load: %h", lde);
+//   $display("Load: %b", lde);
 
 // end
 // endmodule
