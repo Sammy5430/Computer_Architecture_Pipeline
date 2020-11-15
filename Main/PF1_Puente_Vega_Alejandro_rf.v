@@ -215,7 +215,7 @@ registers R14 (data[14], datain, enables[15-14], clk, clr);
 
 
 //assign PCout  = tempPCvalue;
-always @ (addedPCin, !resetPC)
+always @ (PCIN , !resetPC, posedge clk)
     if(ddata == 4'd15)
           begin
             tempPCvalue = datain;
@@ -424,6 +424,9 @@ $monitor("Output2 %h", O2);
 $monitor("Output3 %h", O3);
 #10
 $monitor("PCout %h", PCout);
+
+
+
 
 
 // $display("Output1: %h", O1);
