@@ -54,6 +54,7 @@ module registers(output reg [31:0] out, input [31:0] in, input lde, clk, clr );
     end
 endmodule
 
+/* HARDCODED FOR TESTING
 module registerfile (output reg [31:0] PCout, output [31:0] O1, O2, O3, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, 
 input [31:0] datain, PCIN);
   //Stating the wires
@@ -123,79 +124,72 @@ input [31:0] datain, PCIN);
   mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
   mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
   mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-endmodule
+endmodule*/
 
-/**********************************************************************************
+
 module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, 
 input [31:0] datain, PCIN);
-  //Stating the wires
-  wire [31:0] data [15:0];// data register output to connect to the multiplexers 
-  wire [15:0] enables; // transfering the activation from the decoder to the registers
-  wire [31:0] addedPCin; //from adder to mux2x1
-  wire [31:0] chosenData;//mux to register 15
+    //Stating the wires
+    wire [31:0] data [15:0];// data register output to connect to the multiplexers 
+    wire [15:0] enables; // transfering the activation from the decoder to the registers
+    wire [31:0] addedPCin; //from adder to mux2x1
+    wire [31:0] chosenData;//mux to register 15
 
-  reg [31:0] tempPCvalue, R15out;
-  reg tempPCld;
-  reg [3:0] tempLDEB;
+    reg [31:0] tempPCvalue, R15out;
+    reg tempPCld;
+    reg [3:0] tempLDEB;
 
-  //Connecting the Modules
-  binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
-  //binaryDecoder Bdecoder(en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15, lde, ddata);//Binary decoder
+    //Connecting the Modules
+    binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
+    //binaryDecoder Bdecoder(en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15, lde, ddata);//Binary decoder
 
-  //15 registers
-  registers R0 (data[0], datain, enables[15-0], clk, clr);
-  registers R1 (data[1], datain, enables[15-1], clk, clr);
-  registers R2 (data[2], datain, enables[15-2], clk, clr);
-  registers R3 (data[3], datain, enables[15-3], clk, clr);
-  registers R4 (data[4], datain, enables[15-4], clk, clr);
-  registers R5 (data[5], datain, enables[15-5], clk, clr);
-  registers R6 (data[6], datain, enables[15-6], clk, clr);
-  registers R7 (data[7], datain, enables[15-7], clk, clr);
-  registers R8 (data[8], datain, enables[15-8], clk, clr);
-  registers R9 (data[9], datain, enables[15-9], clk, clr);
-  registers R10 (data[10], datain, enables[15-10], clk, clr);
-  registers R11 (data[11], datain, enables[15-11], clk, clr);
-  registers R12 (data[12], datain, enables[15-12], clk, clr);
-  registers R13 (data[13], datain, enables[15-13], clk, clr);
-  registers R14 (data[14], datain, enables[15-14], clk, clr);
+    //15 registers
+    registers R0 (data[0], datain, enables[15-0], clk, clr);
+    registers R1 (data[1], datain, enables[15-1], clk, clr);
+    registers R2 (data[2], datain, enables[15-2], clk, clr);
+    registers R3 (data[3], datain, enables[15-3], clk, clr);
+    registers R4 (data[4], datain, enables[15-4], clk, clr);
+    registers R5 (data[5], datain, enables[15-5], clk, clr);
+    registers R6 (data[6], datain, enables[15-6], clk, clr);
+    registers R7 (data[7], datain, enables[15-7], clk, clr);
+    registers R8 (data[8], datain, enables[15-8], clk, clr);
+    registers R9 (data[9], datain, enables[15-9], clk, clr);
+    registers R10 (data[10], datain, enables[15-10], clk, clr);
+    registers R11 (data[11], datain, enables[15-11], clk, clr);
+    registers R12 (data[12], datain, enables[15-12], clk, clr);
+    registers R13 (data[13], datain, enables[15-13], clk, clr);
+    registers R14 (data[14], datain, enables[15-14], clk, clr);
 
-  //PC
-  adder pcadder(addedPCin, PCIN, 32'd4, clk);
-  // mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
+    //PC
+    adder pcadder(addedPCin, PCIN, 32'd4, clk);
+    // mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-  //assign PCout  = tempPCvalue;
-  always @ (addedPCin, resetPC)
-  begin
-      
-        $display("addedPCin: %b\n", addedPCin);
-        $monitor("clk: %b \nlde: %b \nclr: %b \nLE_PC: %b \nresetPC: %b \ns1: %b \ns2: %b \ns3: %b \nddata: %b \ndatain: %b \nPCIN: %b \n", 
-        clk, lde, clr, LE_PC, resetPC, s1, s2, s3, ddata, datain, PCIN);
-    if(resetPC)
-        begin
-            tempPCvalue = 32'd0;
-        end
-    else if(ddata == 4'd15)
-        begin
-            tempPCvalue = datain;
-            tempPCld = 1;
-        end
-    else
-        begin
-            tempPCvalue = addedPCin;//PCIN
-            tempPCld = LE_PC;
-        end
-  end 
-  //registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
-  
-  assign PCout = 0;
-  PCout = PCout+ 4;
+    //assign PCout  = tempPCvalue;
+    always @ (PCIN, resetPC, posedge clk)
+        if(resetPC)
+            begin
+                tempPCvalue = 32'd0;
+            end
+        else if(ddata == 4'd15)
+            begin
+                tempPCvalue = datain;
+                tempPCld = 1;
+            end
+        else
+            begin
+                tempPCvalue = addedPCin;//PCIN
+                tempPCld = LE_PC;
+            end
+    
+    registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
+    // assign PCout  = tempPCvalue;
 
-  // //Multiplexers
-  mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-  mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-  mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+    // //Multiplexers
+    mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+    mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+    mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+
 endmodule
-**********************************************************************************/
 
 
 module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s, reset);
@@ -940,7 +934,6 @@ input [31:0] IR, input Cond, reset);
 	*/
 	always @ (Cond, IR, reset)
 		begin
-            $display("IR: %b\n", IR);
 		if (IR == 32'h00000000||!Cond||reset)//NOP
 			begin
 				OP <= 4'b0000;
@@ -1387,7 +1380,6 @@ module condition_handler(output reg Cond_true, B, L, input[3:0] CC, CI, input ID
 					L<=0;
 				end
 		endcase
-        $display("Cond_true: %b\nCI: %b\n", Cond_true,CI);
 		end
 endmodule		
 
@@ -1882,61 +1874,83 @@ output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  
 output reg [1:0] NextReg2Bit, Msignal, input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, reset2, 
 input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
 
+    reg [31:0] temp_directRegister, temp_aluConnection, temp_shiftExtender;
+    reg [11:0] temp_LelevenShift;
+    reg temp_singleBitOut, temp_shift_imm, temp_EXloadInst, temp_EXRFEnable, temp_NextReg1, temp_NextReg2;
+    reg [3:0] temp_outRDBits, temp_OP;
+    reg [1:0] temp_NextReg2Bit, temp_Msignal;
+
     //temp variable
     reg [31:0] temp;
     always @(posedge clk)// Same as before
     begin
         if(reset2)
             begin
-                directRegister = 32'b0;
-                aluConnection = 32'b0;
-                shiftExtender = 32'b0;
-                singleBitOut = 1'b0;
-                outRDBits = 4'b0;
-                LelevenShift = 12'b0;
-                
-                shift_imm = 1'b0;
-                OP = 4'b0;
-                EXloadInst = 1'b0;
-                EXRFEnable = 1'b0;
-                NextReg1 = 1'b0;
-                NextReg2 = 1'b0;
-                NextReg2Bit = 2'b0; 
-                Msignal = 2'b0;
+                temp_directRegister = 32'b0;
+                temp_aluConnection = 32'b0;
+                temp_shiftExtender = 32'b0;
+                temp_singleBitOut = 1'b0;
+                temp_outRDBits = 4'b0;
+                temp_LelevenShift = 12'b0;
+                temp_shift_imm = 1'b0;
+                temp_OP = 4'b0;
+                temp_EXloadInst = 1'b0;
+                temp_EXRFEnable = 1'b0;
+                temp_NextReg1 = 1'b0;
+                temp_NextReg2 = 1'b0;
+                temp_NextReg2Bit = 2'b0; 
+                temp_Msignal = 2'b0;
             end
         else
             begin
-                directRegister = outMux1;
-                aluConnection = outMux2;
-                shiftExtender = outMux3;
-                singleBitOut = singleBit;
-                outRDBits = RDBits;
-                LelevenShift = bitsFromPRegister;
+                temp_directRegister = outMux1;
+                temp_aluConnection = outMux2;
+                temp_shiftExtender = outMux3;
+                temp_singleBitOut = singleBit;
+                temp_outRDBits = RDBits;
+                temp_LelevenShift = bitsFromPRegister;
 
                 temp = muxSignals & 32'b00000000000000000001000000000000;
-                shift_imm = temp >> 12;
+                temp_shift_imm = temp >> 12;
 
                 temp = muxSignals & 32'b00000000000000000000111100000000;
-                OP = temp >> 8 ;
+                temp_OP = temp >> 8 ;
                 
                 temp = muxSignals & 32'b00000000000000000000000010000000;
-                EXloadInst = temp >> 7;
+                temp_EXloadInst = temp >> 7;
 
                 temp = muxSignals & 32'b00000000000000000000000001000000;
-                EXRFEnable = temp >> 6;
+                temp_EXRFEnable = temp >> 6;
 
                 temp = muxSignals & 32'b00000000000000000000000000100000;
-                NextReg1 = temp >> 5;
+                temp_NextReg1 = temp >> 5;
 
                 temp = muxSignals & 32'b00000000000000000000000000010000;
-                NextReg2 = temp >> 4;
+                temp_NextReg2 = temp >> 4;
 
                 temp = muxSignals & 32'b00000000000000000000000000001100;
-                NextReg2Bit = temp >> 2;
+                temp_NextReg2Bit = temp >> 2;
 
                 temp = muxSignals & 32'b00000000000000000000000000000011;
-                Msignal = temp;
+                temp_Msignal = temp;
             end
+    end
+    always @ (negedge clk)
+    begin
+        directRegister = temp_directRegister;
+        aluConnection = temp_aluConnection;
+        shiftExtender = temp_shiftExtender;
+        singleBitOut = temp_singleBitOut;
+        outRDBits = temp_outRDBits;
+        LelevenShift = temp_LelevenShift;
+        shift_imm = temp_shift_imm;
+        OP = temp_OP;
+        EXloadInst = temp_EXloadInst;
+        EXRFEnable = temp_EXRFEnable;
+        NextReg1 = temp_NextReg1;
+        NextReg2 = temp_NextReg2;
+        NextReg2Bit = temp_NextReg2Bit;
+        Msignal = temp_Msignal;
     end
 endmodule
 
@@ -1946,30 +1960,46 @@ output reg [1:0] AccessModeDataMemory, output reg EXloadInst2, EXRFEnable2, Data
 input [31:0] aluOut, pastReg, input [3:0] RDSignal ,input EXloadInst2in, EXRFEnable2in, Data_Mem_EN_in, Data_MEM_R_W_in, 
 input [1:0] AccessModeDataMemoryin);
 
+    reg [31:0] temp_outAluSignal, temp_data_Mem;
+    reg [3:0] temp_RDSignalOut;
+    reg [1:0] temp_AccessModeDataMemory;
+    reg temp_EXloadInst2, temp_EXRFEnable2, temp_Data_Mem_EN, temp_Data_MEM_R_W;
+
     always @ (posedge clk)
     begin
         if(reset3)
             begin
-                outAluSignal = 32'b0;
-                data_Mem = 32'b0;
-                RDSignalOut = 4'b0;
-                EXloadInst2 = 1'b0;
-                EXRFEnable2 = 1'b0;
-                Data_Mem_EN = 1'b0;
-                Data_MEM_R_W = 1'b0;
-                AccessModeDataMemory = 2'b0;
+                temp_outAluSignal = 32'b0;
+                temp_data_Mem = 32'b0;
+                temp_RDSignalOut = 4'b0;
+                temp_EXloadInst2 = 1'b0;
+                temp_EXRFEnable2 = 1'b0;
+                temp_Data_Mem_EN = 1'b0;
+                temp_Data_MEM_R_W = 1'b0;
+                temp_AccessModeDataMemory = 2'b0;
             end
         else
             begin
-                outAluSignal = aluOut;
-                data_Mem = pastReg;
-                RDSignalOut = RDSignal;
-                EXloadInst2 = EXloadInst2in;
-                EXRFEnable2 = EXRFEnable2in;
-                Data_Mem_EN = Data_Mem_EN_in;
-                Data_MEM_R_W = Data_MEM_R_W_in;
-                AccessModeDataMemory = AccessModeDataMemoryin;
+                temp_outAluSignal = aluOut;
+                temp_data_Mem = pastReg;
+                temp_RDSignalOut = RDSignal;
+                temp_EXloadInst2 = EXloadInst2in;
+                temp_EXRFEnable2 = EXRFEnable2in;
+                temp_Data_Mem_EN = Data_Mem_EN_in;
+                temp_Data_MEM_R_W = Data_MEM_R_W_in;
+                temp_AccessModeDataMemory = AccessModeDataMemoryin;
             end
+    end
+    always @ (negedge clk)
+    begin
+        outAluSignal = temp_outAluSignal;
+        data_Mem = temp_data_Mem;
+        RDSignalOut = temp_RDSignalOut;
+        EXloadInst2 = temp_EXloadInst2;
+        EXRFEnable2 = temp_EXRFEnable2;
+        Data_Mem_EN = temp_Data_Mem_EN;
+        Data_MEM_R_W = temp_Data_MEM_R_W;
+        AccessModeDataMemory = temp_AccessModeDataMemory;
     end
 endmodule
 
@@ -1978,25 +2008,39 @@ module pipeline_registers_4(output reg [31:0] Data_mem_to_mux, SignalFromEX, out
 output reg EXloadInst3, EXRFEnable3, input clk, reset4,  input [31:0]Data_mem_out,signalFormEXIN, input [3:0] lAstRDsignalIn, 
 input EXloadInst3in, EXRFEnable3in);
 
+    reg [31:0] temp_Data_mem_to_mux;
+    reg [31:0] temp_SignalFromEX;
+    reg [3:0] temp_LastRDSignal;
+    reg temp_EXloadInst3;
+    reg temp_EXRFEnable3;
+    
     always @ (posedge clk)
     begin
         if(reset4)
             begin
-                Data_mem_to_mux = 32'b0;
-                SignalFromEX = 32'b0;
-                LastRDSignal = 4'b0;
-                EXloadInst3 = 1'b0;
-                EXRFEnable3 = 1'b0;
+                temp_Data_mem_to_mux = 32'b0;
+                temp_SignalFromEX = 32'b0;
+                temp_LastRDSignal = 4'b0;
+                temp_EXloadInst3 = 1'b0;
+                temp_EXRFEnable3 = 1'b0;
             end
         else
             begin
                 #3
-                Data_mem_to_mux = Data_mem_out;
-                SignalFromEX = signalFormEXIN;
-                LastRDSignal = lAstRDsignalIn;
-                EXloadInst3 = EXloadInst3in;
-                EXRFEnable3 = EXRFEnable3in;
+                temp_Data_mem_to_mux = Data_mem_out;
+                temp_SignalFromEX = signalFormEXIN;
+                temp_LastRDSignal = lAstRDsignalIn;
+                temp_EXloadInst3 = EXloadInst3in;
+                temp_EXRFEnable3 = EXRFEnable3in;
             end
+    end
+    always @ (negedge clk)
+    begin
+        Data_mem_to_mux = temp_Data_mem_to_mux;
+        SignalFromEX = temp_SignalFromEX;
+        LastRDSignal = temp_LastRDSignal;
+        EXloadInst3 = temp_EXloadInst3;
+        EXRFEnable3 = temp_EXRFEnable3;
     end
 endmodule
 
@@ -2116,7 +2160,11 @@ module pipelinePU;
         hzd_fwd_LE_IF, cond_handler_L, sys_reset, ramI_out, mux1_out, adder1_out);
 
     //Instruction Decode
+        /* HARDCODED FOR TESTING
         registerfile rf1( regfile_pc_out, regfile_out_1, regfile_out_2, regfile_out_3, global_clk, pplr4_RF_enable, 
+        cpu_ID_RF_clear, hzd_fwd_LE_PC, sys_reset, pplr1_RA, pplr1_RB, pplr1_RD, pplr4_RD, mux9_out, pplr1_out);
+        */
+        registerfile rf1( regfile_out_1, regfile_out_2, regfile_out_3,  regfile_pc_out, global_clk, pplr4_RF_enable, 
         cpu_ID_RF_clear, hzd_fwd_LE_PC, sys_reset, pplr1_RA, pplr1_RB, pplr1_RD, pplr4_RD, mux9_out, pplr1_out);
         mux4x1_32 mux2(mux2_out, hzd_fwd_fwd_PA, regfile_out_1, alu1_out, mux8_out, mux9_out);
         mux4x1_32 mux3(mux3_out, hzd_fwd_fwd_PB, regfile_out_2, alu1_out, mux8_out, mux9_out);
@@ -2200,14 +2248,14 @@ module pipelinePU;
                     $display("Testing Pipeline Unit:");
                     global_clk = 1'b0;
                     sys_reset = 1'b1;
-                    #15 global_clk = 1'b1;
-                    
-                    global_clk = 1'b0;
+                    #5 global_clk = 1'b1;
+                    #5 global_clk = 1'b0;
                     sys_reset = 1'b0;
+
 
                     repeat (9)
                         begin
-                            #15 global_clk = 1'b1;
+                            #5 global_clk = 1'b1;
                             $display("");
                             $display("PC %d", regfile_pc_out);
                             $display("ID");
@@ -2238,7 +2286,7 @@ module pipelinePU;
                                 $display("   Load_instr %b", pplr4_load_inst);
                                 $display("   RF_Enable %b", pplr4_RF_enable);
                             
-                            global_clk = 1'b0;
+                            #5 global_clk = 1'b0;
                         end
                 end
 endmodule

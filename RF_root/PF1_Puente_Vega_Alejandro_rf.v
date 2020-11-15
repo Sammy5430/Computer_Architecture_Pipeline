@@ -215,7 +215,7 @@ registers R14 (data[14], datain, enables[15-14], clk, clr);
 
 
 //assign PCout  = tempPCvalue;
-always @ (addedPCin, !resetPC)
+always @ (PCIN , !resetPC, posedge clk)
     if(ddata == 4'd15)
           begin
             tempPCvalue = datain;
@@ -295,23 +295,7 @@ wire [31:0] O1, O2, O3, PCout;
 
 //registerfiel module
 registerfile register_file(O1, O2, O3, PCout ,clk, clr, lde, LE_PC, resetPC1, s1, s2, s3, ddata, datain, PCIN);
-// //R0
-// PCIN = 32'd0;
-// //Load enable
-// lde = 1'b1;
-// LE_PC = 1'b1;
-// //Decoder Data
-// ddata = 4'b1101;
-// //Entering Data
-// datain = 32'h00000001;
-// //Select lines for mux
-// s1 = 4'b1101;
-// s2 = 4'b1111;
-// s3 = 4'b1111;
-// //Clock and clear
-// clr = 1'b1;
-// resetPC1 = 1'b0;
-// //clk = 1'b1;
+
 
 //Starting up the variables
 initial begin
@@ -440,6 +424,9 @@ $monitor("Output2 %h", O2);
 $monitor("Output3 %h", O3);
 #10
 $monitor("PCout %h", PCout);
+
+
+
 
 
 // $display("Output1: %h", O1);
