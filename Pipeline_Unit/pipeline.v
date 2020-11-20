@@ -1,24 +1,27 @@
 module binaryDecoder (output reg[15:0] activate, input ld , input [3:0] sel);
   always@(ld, sel)
     begin
-      case (sel)
-        4'b0000: activate = 16'b1000000000000000;
-        4'b0001: activate = 16'b0100000000000000;
-        4'b0010: activate = 16'b0010000000000000;
-        4'b0011: activate = 16'b0001000000000000;
-        4'b0100: activate = 16'b0000100000000000;
-        4'b0101: activate = 16'b0000010000000000;
-        4'b0110: activate = 16'b0000001000000000;
-        4'b0111: activate = 16'b0000000100000000;
-        4'b1000: activate = 16'b0000000010000000;
-        4'b1001: activate = 16'b0000000001000000;
-        4'b1010: activate = 16'b0000000000100000;
-        4'b1011: activate = 16'b0000000000010000;
-        4'b1100: activate = 16'b0000000000001000;
-        4'b1101: activate = 16'b0000000000000100;
-        4'b1110: activate = 16'b0000000000000010;
-        4'b1111: activate = 16'b0000000000000001;
-      endcase
+        if(ld)
+        begin
+            case (sel)
+                4'b0000: activate = 16'b1000000000000000;
+                4'b0001: activate = 16'b0100000000000000;
+                4'b0010: activate = 16'b0010000000000000;
+                4'b0011: activate = 16'b0001000000000000;
+                4'b0100: activate = 16'b0000100000000000;
+                4'b0101: activate = 16'b0000010000000000;
+                4'b0110: activate = 16'b0000001000000000;
+                4'b0111: activate = 16'b0000000100000000;
+                4'b1000: activate = 16'b0000000010000000;
+                4'b1001: activate = 16'b0000000001000000;
+                4'b1010: activate = 16'b0000000000100000;
+                4'b1011: activate = 16'b0000000000010000;
+                4'b1100: activate = 16'b0000000000001000;
+                4'b1101: activate = 16'b0000000000000100;
+                4'b1110: activate = 16'b0000000000000010;
+                4'b1111: activate = 16'b0000000000000001;
+            endcase
+        end
     end
 endmodule
 
@@ -44,95 +47,26 @@ module mux16x1 (output reg [31:0] DataOut,input [3:0] s, input [31:0] A, B, C, D
   endcase
 endmodule                
 
-
-module registers(output reg [31:0] out, input [31:0] in, input lde, clk, clr );
+module registers(output reg [31:0] out, input [31:0] in, input lde, clk, clr);
     //lde = loadEnable
-    always@ (posedge clk, negedge clr)
+
+    always@ (posedge clk)
     begin
-        if (!clr) out <= 32'h00000000; 
-        else if (lde) out = in;
+        // if (!clr||!lde) 
+        //     out <= 32'h00000000; 
+        // else 
+        if (lde) 
+            out <= in;
     end
+
 endmodule
-
-/* HARDCODED FOR TESTING
-module registerfile (output reg [31:0] PCout, output [31:0] O1, O2, O3, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, 
-input [31:0] datain, PCIN);
-  //Stating the wires
-  wire [31:0] data [15:0];// data register output to connect to the multiplexers 
-  wire [15:0] enables; // transfering the activation from the decoder to the registers
-  wire [31:0] addedPCin; //from adder to mux2x1
-  wire [31:0] chosenData;//mux to register 15
-
-  reg [31:0] tempPCvalue, R15out;
-  reg tempPCld;
-  reg [3:0] tempLDEB;
-
-  //Connecting the Modules
-  binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
-  //binaryDecoder Bdecoder(en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15, lde, ddata);//Binary decoder
-
-  //15 registers
-  registers R0 (data[0], datain, enables[15-0], clk, clr);
-  registers R1 (data[1], datain, enables[15-1], clk, clr);
-  registers R2 (data[2], datain, enables[15-2], clk, clr);
-  registers R3 (data[3], datain, enables[15-3], clk, clr);
-  registers R4 (data[4], datain, enables[15-4], clk, clr);
-  registers R5 (data[5], datain, enables[15-5], clk, clr);
-  registers R6 (data[6], datain, enables[15-6], clk, clr);
-  registers R7 (data[7], datain, enables[15-7], clk, clr);
-  registers R8 (data[8], datain, enables[15-8], clk, clr);
-  registers R9 (data[9], datain, enables[15-9], clk, clr);
-  registers R10 (data[10], datain, enables[15-10], clk, clr);
-  registers R11 (data[11], datain, enables[15-11], clk, clr);
-  registers R12 (data[12], datain, enables[15-12], clk, clr);
-  registers R13 (data[13], datain, enables[15-13], clk, clr);
-  registers R14 (data[14], datain, enables[15-14], clk, clr);
-
-  //PC
-  adder pcadder(addedPCin, PCIN, 32'd4, clk);
-  // mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
-
-  //assign PCout  = tempPCvalue;
-  always @ (addedPCin, resetPC)
-  begin
-      
-        // $display("addedPCin: %b\n", addedPCin);
-        // $monitor("clk: %b \nlde: %b \nclr: %b \nLE_PC: %b \nresetPC: %b \ns1: %b \ns2: %b \ns3: %b \nddata: %b \ndatain: %b \nPCIN: %b \n", 
-        // clk, lde, clr, LE_PC, resetPC, s1, s2, s3, ddata, datain, PCIN);
-    if(resetPC)
-        begin
-            PCout = 0;
-            tempPCvalue = 32'd0;
-        end
-    else if(ddata == 4'd15)
-        begin
-            tempPCvalue = datain;
-            tempPCld = 1;
-        end
-    else
-        begin
-            PCout = PCout+ 4;
-            tempPCvalue = addedPCin;//PCIN
-            tempPCld = LE_PC;
-        end
-    
-  end 
-  //registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
-  
-
-  // //Multiplexers
-  mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-  mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-  mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-endmodule*/
-
 
 module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, 
 input [31:0] datain, PCIN);
     //Stating the wires
     wire [31:0] data [15:0];// data register output to connect to the multiplexers 
     wire [15:0] enables; // transfering the activation from the decoder to the registers
-    wire [31:0] addedPCin; //from adder to mux2x1
+    // wire [31:0] addedPCin; //from adder to mux2x1
     wire [31:0] chosenData;//mux to register 15
 
     reg [31:0] tempPCvalue, R15out;
@@ -161,36 +95,31 @@ input [31:0] datain, PCIN);
     registers R14 (data[14], datain, enables[15-14], clk, clr);
 
     //PC
-    adder pcadder(addedPCin, PCIN, 32'd4, clk);
-    // mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
-
-    //assign PCout  = tempPCvalue;
-    always @ (PCIN, resetPC, posedge clk)
+    registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
+    always @ (resetPC, posedge clk)
+    begin
         if(resetPC)
             begin
                 tempPCvalue = 32'd0;
+                tempPCld = 0;
             end
-        else if(ddata == 4'd15)
-            begin
-                tempPCvalue = datain;
-                tempPCld = 1;
-            end
+        // else if(ddata == 4'd15)
+        //     begin
+        //         tempPCvalue = datain;
+        //         tempPCld = 1;
+        //     end
         else
             begin
-                tempPCvalue = addedPCin;//PCIN
+                tempPCvalue = PCIN;//PCIN
                 tempPCld = LE_PC;
             end
-    
-    registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
-    // assign PCout  = tempPCvalue;
+    end
 
     // //Multiplexers
     mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
     mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
     mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
-
 endmodule
-
 
 module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s, reset);
     always@ (s, reset)
@@ -319,16 +248,6 @@ module mux2x1_1 (output reg DataOut, input s, A, B);
         endcase
 endmodule
 
-//ALEJANDRO IMPLEMENTATION FOR CPU SIGNALS AS SINGLE INPUT B
-// module mux2x1_13 (output reg [12:0] DataOut, input s,  input [12:0] A, B);
-    //     always @(s, A, B)
-    //         case(s)
-    //             1'b0:  DataOut = A;
-    //             1'b1:  DataOut = B;
-    //         endcase
-// endmodule
-
-//JOSUE IMPLEMENTATION FOR CONCATENATION OF CPU SIGNALS
 module mux2x1_13 (output reg [12:0] DataOut, input s,  input [12:0] A, input[3:0] OP, input[1:0] Sm, Mm, input ID_shift, load, ID_RF, Data, RW);
     always @(s, A, OP, Sm, Mm, ID_shift, load, ID_RF, Data, RW)
         case(s)
@@ -339,11 +258,10 @@ endmodule
 
 module mux2x1_32 (output reg [31:0] DataOut, input s,  input [31:0] A, B);
     always @(s, A, B)
-        DataOut = B;
-        // case(s)
-        //     1'b0:  DataOut = A;
-        //     1'b1:  DataOut = B;
-        // endcase
+        case(s)
+            1'b0:  DataOut = A;
+            1'b1:  DataOut = B;
+        endcase
 endmodule
 
 module mux4x1_32 (output reg [31:0] DataOut ,input [1:0] s, input [31:0] A, B, C, D);
@@ -357,8 +275,10 @@ module mux4x1_32 (output reg [31:0] DataOut ,input [1:0] s, input [31:0] A, B, C
 endmodule
 
 module adder (output reg [31:0] DataOut, input [31:0] pc, n, input clk);
-    always@(posedge clk)
+    always@(clk)
+    begin
         DataOut = pc + n;
+    end
 endmodule
 
 module sign_ext (output reg[31:0] TA, input[23:0] base);
@@ -498,7 +418,7 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
 		endcase
 endmodule
 
-module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out);
+module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out, clk);
     // A = Rn
     // B = shifter_operand
     // O = Rd
@@ -507,7 +427,8 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
     // Flag[2] = Z(Zero)
     // Flag[3] = N(Negative)
 	// CondCode ARM Manual Section A2.5.2
-    always@(OP, A, B)
+    always@(posedge clk)
+    begin
         case(OP)
                                                         //                                   Status CondCode  ARM Manual
                                                         //                                    N  Z  C  V    Section
@@ -615,312 +536,11 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
                       CondCode[2] = !O;                    // Z Flag Update
                       CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
-        endcase
+            endcase
+        $monitor("\n-------------\nALU Out: %b\n-------------", O);
+    end
 endmodule
 
-//PREVIOUS IMPLEMENTATION
-// module cpu (output reg[12:0] IS, output reg ID_B, ID_RF_clear, input [31:0] IR, input Cond); 
-    // 	always @ (IR) 
-    // 		if (IR[31:0] == 32'h00000000||!Cond)//NOP
-    // 			begin
-    // 				IS[11:8] <= 4'b0000;
-    // 				IS[1:0] <= 2'b00;
-    // 				IS[3:2] <= 2'b00;
-    // 				IS[7] <= 1'b0; 
-    // 				ID_B <= 1'b0;
-    // 				IS[6] <= 1'b0; 
-    // 				IS[4] <= 1'b0; 
-    // 				IS[5] <= 1'b0;
-    // 				IS[12] <= 1'b0;
-    // 				ID_RF_clear<=1'b0;
-    // 			end
-    // 		else if (IR[27:26]== 2'b00) // Data Processing		
-    // 			if(IR[25]== 1'b0) // Immidiate Register shifts
-    // 				if(IR[11:4]== 8'h00) //No Shifts
-    // 					begin
-    // 						IS[11:8] <= IR[24:21];
-    // 						IS[1:0] <= 2'b01;
-    // 						IS[3:2] <= 2'b00;
-    // 						IS[7] <= 1'b0; 
-    // 						ID_B <= 1'b0;
-    // 						IS[6] <= 1'b1; 
-    // 						IS[4] <= 1'b0; 
-    // 						IS[5] <= 1'b0;
-    // 						IS[12] <= 1'b0;
-    // 						ID_RF_clear<=1'b1;
-    // 					end
-    // 				else begin //Shifts Register
-    // 						IS[11:8] <= IR[24:21];
-    // 						IS[1:0] <= 2'b01;
-    // 						IS[3:2] <= 2'b00;
-    // 						IS[7] <= 1'b0; 
-    // 						ID_B <= 1'b0;
-    // 						IS[6] <= 1'b1; 
-    // 						IS[4] <= 1'b0; 
-    // 						IS[5] <= 1'b0;
-    // 						IS[12] <= 1'b1;
-    // 						ID_RF_clear<=1'b1;
-    // 					end
-    // 			else //Immidiate
-    // 				begin
-    // 					IS[11:8] <= IR[24:21];
-    // 					IS[1:0] <= 2'b00;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b0;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 		else if (IR[27:26] == 2'b01) //Load/Store
-    // 			//if(Immidiate/Scaled register && SUB/ADD && Word/Byte && Store/Load)
-    // 			if(IR[25]==1'b0&&IR[23:22]==2'b00&&IR[20]==1'b0)//(I/S/W/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b00&&IR[20]==1'b1)//(I/S/W/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b01&&IR[20]==1'b0)//(I/S/B/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b01&&IR[20]==1'b1)//(I/S/B/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b10&&IR[20]==1'b0)//(I/A/W/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b10&&IR[20]==1'b1)//(I/A/W/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b11&&IR[20]==1'b0)//(I/A/B/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b0&&IR[23:22]==2'b11&&IR[20]==1'b1)//(I/A/B/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b10;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b00&&IR[20]==1'b0)//(S/S/W/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b00&&IR[20]==1'b1)//(S/S/W/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b01&&IR[20]==1'b0)//(S/S/B/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b01&&IR[20]==1'b1)//(S/S/B/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0010;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b10&&IR[20]==1'b0)//(S/A/W/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b10&&IR[20]==1'b1)//(S/A/W/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b10;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b11&&IR[20]==1'b0)//(S/A/B/S)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b0; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b0; 
-    // 					IS[4] <= 1'b1; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 			else if(IR[25]==1'b1&&IR[23:22]==2'b11&&IR[20]==1'b1)//(S/A/B/L)
-    // 				begin
-    // 					IS[11:8] <= 4'b0100;
-    // 					IS[1:0] <= 2'b11;
-    // 					IS[3:2] <= 2'b00;
-    // 					IS[7] <= 1'b1; 
-    // 					ID_B <= 1'b0;
-    // 					IS[6] <= 1'b1; 
-    // 					IS[4] <= 1'b0; 
-    // 					IS[5] <= 1'b1;
-    // 					if(IR[11:4]==8'h00)IS[12] <= 1'b0;
-    // 					else IS[12] <= 1'b1;
-    // 					ID_RF_clear<=1'b1;
-    // 				end
-    // 		//Load/Store end
-    // 		else if(IR[27:25] == 3'b101) //Branch
-    // 			begin 
-    // 				IS[11:8] <= 4'b0000;
-    // 				IS[1:0] <= 2'b00;
-    // 				IS[3:2] <= 2'b00;
-    // 				IS[7] <= 1'b0; 
-    // 				ID_B <= 1'b1;
-    // 				IS[6] <= 1'b0; 
-    // 				IS[4] <= 1'b0; 
-    // 				IS[5] <= 1'b0;
-    // 				IS[12] <= 1'b0;
-    // 				ID_RF_clear<=1'b0;
-    // 			end	
-    // 		else //Instruction not found
-    // 			begin
-    // 				IS[11:8] <= 4'b0000;
-    // 				IS[1:0] <= 2'b00;
-    // 				IS[3:2] <= 2'b00;
-    // 				IS[7] <= 1'b0; 
-    // 				ID_B <= 1'b0;
-    // 				IS[6] <= 1'b0; 
-    // 				IS[4] <= 1'b0; 
-    // 				IS[5] <= 1'b0;
-    // 				IS[12] <= 1'b0;
-    // 				ID_RF_clear<=1'b0;
-    // 			end
-// endmodule
-
-//NEW IMPLEMENTATION
 module cpu2 (output reg[3:0] OP, output reg [1:0] Sm, Mm, output reg ID_load_instr, ID_B, ID_RF, ID_RW, ID_Data, ID_shift_imm, ID_RF_clear, 
 input [31:0] IR, input Cond, reset); 
 	/*IS[12]=ID_shift
@@ -999,7 +619,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0010;
 					Sm <= 2'b10;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b0; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b0; 
@@ -1012,7 +632,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0010;
 					Sm <= 2'b10;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b1; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b1; 
@@ -1051,7 +671,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0100;
 					Sm <= 2'b10;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b0; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b0; 
@@ -1064,7 +684,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0100;
 					Sm <= 2'b10;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b1; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b1; 
@@ -1103,7 +723,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0010;
 					Sm <= 2'b11;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b0; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b0; 
@@ -1117,7 +737,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0010;
 					Sm <= 2'b11;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b1; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b1; 
@@ -1159,7 +779,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0100;
 					Sm <= 2'b11;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b0; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b0; 
@@ -1173,7 +793,7 @@ input [31:0] IR, input Cond, reset);
 				begin
 					OP <= 4'b0100;
 					Sm <= 2'b11;
-					Mm <= 2'b10;
+					Mm <= 2'b00;
 					ID_load_instr <= 1'b1; 
 					ID_B <= 1'b0;
 					ID_RF <= 1'b1; 
@@ -1256,122 +876,182 @@ module condition_handler(output reg Cond_true, B, L, input[3:0] CC, CI, input ID
 			4'b0000:
 				begin
 					Cond_true<=CC[2];//Z
-					if(ID_B)B<=CC[2];
-					else B<=0;
-					if(IR_L)L<=CC[2];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[2];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[2];
+					else 
+                        L<=0;
 				end
 			4'b0001:
 				begin
 					Cond_true<=!CC[2];//~Z
-					if(ID_B)B<=!CC[2];
-					else B<=0;
-					if(IR_L)L<=!CC[2];
-					else L<=0;
+					if(ID_B)
+                        B<=!CC[2];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=!CC[2];
+					else 
+                        L<=0;
 				end
 			4'b0010:
 				begin
 					Cond_true<=CC[1];//C
-					if(ID_B)B<=CC[1];
-					else B<=0;
-					if(IR_L)L<=CC[1];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[1];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[1];
+					else 
+                        L<=0;
 				end
 			4'b0011:
 				begin
 					Cond_true<=!CC[1];//~C
-					if(ID_B)B<=!CC[1];
-					else B<=0;
-					if(IR_L)L<=!CC[1];
-					else L<=0;
+					if(ID_B)
+                        B<=!CC[1];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=!CC[1];
+					else 
+                        L<=0;
 				end
 			4'b0100:
 				begin
 					Cond_true<=CC[3];//N
-					if(ID_B)B<=CC[3];
-					else B<=0;
-					if(IR_L)L<=CC[3];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[3];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[3];
+					else 
+                        L<=0;
 				end
 			4'b0101:
 				begin
 					Cond_true<=!CC[3];//~N
-					if(ID_B)B<=!CC[3];
-					else B<=0;
-					if(IR_L)L<=!CC[3];
-					else L<=0;
+					if(ID_B)
+                        B<=!CC[3];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=!CC[3];
+					else 
+                        L<=0;
 				end
 			4'b0110:
 				begin
 					Cond_true<=CC[0];//V
-					if(ID_B)B<=CC[0];
-					else B<=0;
-					if(IR_L)L<=CC[0];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[0];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[0];
+					else 
+                        L<=0;
 				end
 			4'b0111:
 				begin
 					Cond_true<=!CC[0];//~V
-					if(ID_B)B<=!CC[0];
-					else B<=0;
-					if(IR_L)L<=!CC[0];
-					else L<=0;
+					if(ID_B)
+                        B<=!CC[0];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=!CC[0];
+					else 
+                        L<=0;
 				end
 			4'b1000:
 				begin
 					Cond_true<=CC[1]&&(!CC[2]);//C&&~Z
-					if(ID_B)B<=CC[1]&&(!CC[2]);
-					else B<=0;
-					if(IR_L)L<=CC[1]&&(!CC[2]);
-					else L<=0;
+					if(ID_B)
+                        B<=CC[1]&&(!CC[2]);
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[1]&&(!CC[2]);
+					else 
+                        L<=0;
 				end
 			4'b1001:
 				begin
 					Cond_true<=(!CC[1])||CC[2];//~C||Z
-					if(ID_B)B<=(!CC[1])||CC[2];
-					else B<=0;
-					if(IR_L)L<=(!CC[1])||CC[2];
-					else L<=0;
+					if(ID_B)
+                        B<=(!CC[1])||CC[2];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=(!CC[1])||CC[2];
+					else 
+                        L<=0;
 				end
 			4'b1010:
 				begin
 					Cond_true<=CC[3]==CC[0];//N=V
-					if(ID_B)B<=CC[3]==CC[0];
-					else B<=0;
-					if(IR_L)L<=CC[3]==CC[0];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[3]==CC[0];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[3]==CC[0];
+					else 
+                        L<=0;
 				end
 			4'b1011:
 				begin
 					Cond_true<=CC[3]!=CC[0];//N~=V
-					if(ID_B)B<=CC[3]!=CC[0];
-					else B<=0;
-					if(IR_L)L<=CC[3]!=CC[0];
-					else L<=0;
+					if(ID_B)
+                        B<=CC[3]!=CC[0];
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=CC[3]!=CC[0];
+					else 
+                        L<=0;
 				end
 			4'b1100:
 				begin
 					Cond_true<=(!CC[2])&&(CC[3]==CC[0]);//(~Z)&&N=V
-					if(ID_B)B<=(!CC[2])&&(CC[3]==CC[0]);
-					else B<=0;
-					if(IR_L)L<=(!CC[2])&&(CC[3]==CC[0]);
-					else L<=0;
+					if(ID_B)
+                        B<=(!CC[2])&&(CC[3]==CC[0]);
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=(!CC[2])&&(CC[3]==CC[0]);
+					else 
+                        L<=0;
 				end
 			4'b1101:
 				begin
 					Cond_true<=(CC[2])||(CC[3]!=CC[0]);//(Z)||N!=V
-					if(ID_B)B<=(CC[2])||(CC[3]!=CC[0]);
-					else B<=0;
-					if(IR_L)L<=(CC[2])||(CC[3]!=CC[0]);
-					else L<=0;
+					if(ID_B)
+                        B<=(CC[2])||(CC[3]!=CC[0]);
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=(CC[2])||(CC[3]!=CC[0]);
+					else 
+                        L<=0;
 				end
 			4'b1110:
 				begin
 					Cond_true<=1;
-					if(ID_B)B<=1;
-					else B<=0;
-					if(IR_L)L<=1;
-					else L<=0;
+					if(ID_B)
+                        B<=1;
+					else 
+                        B<=0;
+					if(IR_L)
+                        L<=1;
+					else 
+                        L<=0;
 				end
 			4'b1111:
 				begin
@@ -1814,7 +1494,16 @@ input [31:0] InInstructionMEM, InPCAdress, INNextPC);
 
     reg [31:0] temp;
 
-    always @ (posedge clk, LD)
+    reg [31:0] temp_PCAdressOut, temp_PCNextout, temp_toCPU;
+    reg [3:0] temp_toConditionH;
+    reg [23:0] temp_toSignextender;
+    reg temp_bitToCondition;
+    reg [3:0] temp_RA, temp_RB, temp_RD; 
+    reg temp_LinkOut; 
+    reg [11:0] temp_directTonextregister;
+    reg temp_oneBitToNextRegister;
+
+    always @ (InPCAdress, posedge clk)
     begin
         if(reset)
             begin
@@ -1830,11 +1519,9 @@ input [31:0] InInstructionMEM, InPCAdress, INNextPC);
                 RD = 4'b0;
                 directTonextregister = 12'b0;
                 oneBitToNextRegister = 1'b0;
-                //$display("In reset NOW");
             end
         else
-            begin
-                //$display("In else NOW");
+            begin                
                 PCNextout = INNextPC;
                 PCAdressOut = InPCAdress;
                 LinkOut = LinkIn;
@@ -1864,7 +1551,6 @@ input [31:0] InInstructionMEM, InPCAdress, INNextPC);
                 temp = InInstructionMEM & 32'b00000000000100000000000000000000;
                 oneBitToNextRegister = temp >> 20;
             end
-        //$display("InInstructionMEM: %b\nInPCAdress: %b\nPCAdressOut: %b\n", InInstructionMEM, InPCAdress,PCAdressOut);
     end
 endmodule
 
@@ -2026,7 +1712,6 @@ input EXloadInst3in, EXRFEnable3in);
             end
         else
             begin
-                #3
                 temp_Data_mem_to_mux = Data_mem_out;
                 temp_SignalFromEX = signalFormEXIN;
                 temp_LastRDSignal = lAstRDsignalIn;
@@ -2043,6 +1728,8 @@ input EXloadInst3in, EXRFEnable3in);
         EXRFEnable3 = temp_EXRFEnable3;
     end
 endmodule
+
+
 
 
 module pipelinePU;
@@ -2133,12 +1820,6 @@ module pipelinePU;
         wire[1:0] hzd_fwd_fwd_PB;
         wire[1:0] hzd_fwd_fwd_PD;
     //Control Unit variables
-        
-        //PREVIOUS IMPLEMENTATION
-        //wire [12:0] cpu_out;
-        //wire cpu_ID_B_out;
-
-        //NEW IMPLEMENTATION
         wire [3:0] cpu_OP;
         wire [1:0] cpu_Shift_Mode;
         wire [1:0] cpu_Mem_Mode;
@@ -2152,33 +1833,23 @@ module pipelinePU;
         wire cpu_ID_RF_clear;
 //=================================================================================//
     //Instruction Fetch
-        mux2x1_32 mux1(mux1_out, cond_handler_B, adder2_out, adder1_out);
+        mux2x1_32 mux1(mux1_out, cond_handler_B, adder1_out, adder2_out);
         adder adder1(adder1_out, regfile_pc_out, 32'h04, global_clk);
-        instRAM256x8 ramI(ramI_out, regfile_pc_out,global_clk);
+        instRAM256x8 ramI(ramI_out, regfile_pc_out, global_clk);
         pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_cond_in, pplr1_extender_in,
         pplr1_cond_IR_L, pplr1_RA, pplr1_RB, pplr1_RD, pplr1_linkout, pplr1_shifter_L, pplr1_flag_reg_S, global_clk, 
         hzd_fwd_LE_IF, cond_handler_L, sys_reset, ramI_out, mux1_out, adder1_out);
 
     //Instruction Decode
-        /* HARDCODED FOR TESTING
-        registerfile rf1( regfile_pc_out, regfile_out_1, regfile_out_2, regfile_out_3, global_clk, pplr4_RF_enable, 
-        cpu_ID_RF_clear, hzd_fwd_LE_PC, sys_reset, pplr1_RA, pplr1_RB, pplr1_RD, pplr4_RD, mux9_out, pplr1_out);
-        */
-        registerfile rf1( regfile_out_1, regfile_out_2, regfile_out_3,  regfile_pc_out, global_clk, pplr4_RF_enable, 
+        registerfile rf1(regfile_out_1, regfile_out_2, regfile_out_3,  regfile_pc_out, global_clk, pplr4_RF_enable, 
         cpu_ID_RF_clear, hzd_fwd_LE_PC, sys_reset, pplr1_RA, pplr1_RB, pplr1_RD, pplr4_RD, mux9_out, pplr1_out);
         mux4x1_32 mux2(mux2_out, hzd_fwd_fwd_PA, regfile_out_1, alu1_out, mux8_out, mux9_out);
         mux4x1_32 mux3(mux3_out, hzd_fwd_fwd_PB, regfile_out_2, alu1_out, mux8_out, mux9_out);
         mux4x1_32 mux4(mux4_out, hzd_fwd_fwd_PD, regfile_out_3, alu1_out, mux8_out, mux9_out);
         sign_ext signExt1(signExt1_out, pplr1_extender_in);
         adder adder2(adder2_out, signExt1_out, pplr1_pc_out, global_clk);
-
-        //PREVIOUS IMPLEMENTATION
-        //mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_out);      //mux5_out contains control signals
-
-        //NEW IMPLEMENTATION
         mux2x1_13 mux5(mux5_out, hzd_fwd_NOP, 13'h0, cpu_OP, cpu_Shift_Mode, cpu_Mem_Mode, cpu_ID_shift_imm, cpu_ID_load_instr, 
         cpu_ID_RF, cpu_ID_Data_Mem_Enable, cpu_ID_RW);
-
         pipeline_registers_2 pplr2(pplr2_ramD_data, pplr2_alu_A, pplr2_shift_RM, pplr2_shifter_L, pplr2_flag_reg_S,
         pplr2_shift_imm, pplr2_load_inst, pplr2_RF_enable, pplr2_ramD_enable, pplr2_ramD_RW, pplr2_RD, pplr2_ALU_op,
         pplr2_ramD_mode, pplr2_shift_mode, pplr2_shifter_L, pplr1_RD, global_clk, pplr1_flag_reg_S, sys_reset,
@@ -2188,7 +1859,7 @@ module pipelinePU;
         shifter shifter1(shifter1_out, shifter1_carry_out, pplr2_shift_RM, pplr2_shifter_L, pplr2_shift_mode, flag_reg1_c_in);        
         mux2x1_32 mux6(mux6_out, pplr2_shift_imm, pplr2_shift_RM, shifter1_out);
         mux2x1_1 mux7(mux7_out, pplr2_shift_imm, 1'b0, shifter1_carry_out);
-        alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out);
+        alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out, global_clk);
         flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, pplr2_flag_reg_S, sys_reset);
         pipeline_registers_3 pplr3(pplr3_ramD_address, pplr3_ramD_data, pplr3_RD, pplr3_ramD_mode, pplr3_load_inst,
         pplr3_RF_enable, pplr3_ramD_enable, pplr3_ramD_RW, global_clk, sys_reset, alu1_out, pplr2_ramD_data, pplr2_RD,
@@ -2199,6 +1870,7 @@ module pipelinePU;
         mux2x1_32 mux8(mux8_out, pplr3_load_inst, ramD_out, pplr3_ramD_address);
         pipeline_registers_4 pplr4(pplr4_ramD_out, pplr4_ramD_address, pplr4_RD, pplr4_load_inst, pplr4_RF_enable, global_clk,
         sys_reset, ramD_out, pplr3_ramD_address, pplr3_RD, pplr3_load_inst, pplr3_RF_enable);
+
     //Writeback
         mux2x1_32 mux9(mux9_out, pplr4_load_inst, pplr4_ramD_out, pplr4_ramD_address);
 
@@ -2212,21 +1884,21 @@ module pipelinePU;
         pplr3_RF_enable, pplr4_RF_enable, pplr2_load_inst, sys_reset);
 
     //Control Unit
-        //PREVIOUS IMPLEMENTATION
-        //cpu controlUnit1(cpu_out, cpu_ID_B_out, cpu_ID_RF_clear, pplr1_cpu_sig, cond_handler_cond);
-
-        //NEW IMPLEMENTATION
         cpu2 controlUnit1(cpu_OP, cpu_Shift_Mode, cpu_Mem_Mode, cpu_ID_load_instr, cpu_ID_B, cpu_ID_RF, cpu_ID_RW, cpu_ID_Data_Mem_Enable,
         cpu_ID_shift_imm, cpu_ID_RF_clear, pplr1_cpu_sig, cond_handler_cond, sys_reset);
 
     //TEST PIPELINE UNIT
-        //Pre-Charge *Tested*
-            integer I_inFile, I_code;
+        //Pre-Charge
+            integer I_inFile, I_code, index;
             reg [31:0] I_Address;
             reg [7:0] data;
             initial
                 begin
                     I_inFile = $fopen("ramintr.txt","r");
+                    //I_inFile = $fopen("testcode_arm_ppu_1.txt","r");
+                    //I_inFile = $fopen("prueba_profe_2.txt","r");
+                    //I_inFile = $fopen("prueba_profe_3.txt","r");
+                    
                     I_Address = 32'b0;
                     $display("");
                     $display("Instruction RAM was precharged with the following data:");
@@ -2243,8 +1915,7 @@ module pipelinePU;
         //Tester        
             initial
                 begin
-                    $display("");
-                    $display("");
+                    $display("\n");
                     $display("Testing Pipeline Unit:");
                     global_clk = 1'b0;
                     sys_reset = 1'b1;
@@ -2252,41 +1923,58 @@ module pipelinePU;
                     #5 global_clk = 1'b0;
                     sys_reset = 1'b0;
 
-
                     repeat (9)
                         begin
-                            #5 global_clk = 1'b1;
-                            $display("");
-                            $display("PC %d", regfile_pc_out);
-                            $display("ID");
-                                $display("   Shift_imm %b", cpu_ID_shift_imm);
-                                $display("   ALU_op %b", cpu_OP);
-                                $display("   Load_instr %b", cpu_ID_load_instr);
-                                $display("   RF_Enable %b", cpu_ID_RF);
-                                $display("   Data_Mem_Enable %b", cpu_ID_Data_Mem_Enable);
-                                $display("   Data_Mem_RW %b", cpu_ID_RW);
-                                $display("   Data_Mem_Mode %b", cpu_Mem_Mode);
-                                $display("   Shift_Mode %b", cpu_Shift_Mode);
-                            $display("EXE");
-                                $display("   Shift_imm %b", pplr2_shift_imm);
-                                $display("   ALU_op %b", pplr2_ALU_op);
-                                $display("   Load_instr %b", pplr2_load_inst);
-                                $display("   RF_Enable %b", pplr2_RF_enable);
-                                $display("   Data_Mem_Enable %b", pplr2_ramD_enable);
-                                $display("   Data_Mem_RW %b", pplr2_ramD_RW);
-                                $display("   Data_Mem_Mode %b", pplr2_ramD_mode);
-                                $display("   Shift_Mode %b", pplr2_shift_mode);
-                            $display("MEM");
-                                $display("   Load_instr %b", pplr3_load_inst);
-                                $display("   RF_Enable %b", pplr3_RF_enable);
-                                $display("   Data_Mem_Enable %b", pplr3_ramD_enable);
-                                $display("   Data_Mem_RW %b", pplr3_ramD_RW);
-                                $display("   Data_Mem_Mode %b", pplr3_ramD_mode);
-                            $display("WB");
-                                $display("   Load_instr %b", pplr4_load_inst);
-                                $display("   RF_Enable %b", pplr4_RF_enable);
+                            #20 global_clk = 1'b1;
+                            #20 global_clk = 1'b0;
+                            /*PHASE 3 REQUIRED OUTPUTS=========================================================*/
+                                $display("\n");
+                                $display("PC %d", regfile_pc_out);
+                                $display("Instruction: %b", ramI_out);
+                                $display("ID");
+                                    $display("   Shift_imm %b", cpu_ID_shift_imm);
+                                    $display("   ALU_op %b", cpu_OP);
+                                    $display("   Load_instr %b", cpu_ID_load_instr);
+                                    $display("   RF_Enable %b", cpu_ID_RF);
+                                    $display("   Data_Mem_Enable %b", cpu_ID_Data_Mem_Enable);
+                                    $display("   Data_Mem_RW %b", cpu_ID_RW);
+                                    $display("   Data_Mem_Mode %b", cpu_Mem_Mode);
+                                    $display("   Shift_Mode %b", cpu_Shift_Mode);
+                                $display("EXE");
+                                    $display("   Shift_imm %b", pplr2_shift_imm);
+                                    $display("   ALU_op %b", pplr2_ALU_op);
+                                    $display("   Load_instr %b", pplr2_load_inst);
+                                    $display("   RF_Enable %b", pplr2_RF_enable);
+                                    $display("   Data_Mem_Enable %b", pplr2_ramD_enable);
+                                    $display("   Data_Mem_RW %b", pplr2_ramD_RW);
+                                    $display("   Data_Mem_Mode %b", pplr2_ramD_mode);
+                                    $display("   Shift_Mode %b", pplr2_shift_mode);
+                                $display("MEM");
+                                    $display("   Load_instr %b", pplr3_load_inst);
+                                    $display("   RF_Enable %b", pplr3_RF_enable);
+                                    $display("   Data_Mem_Enable %b", pplr3_ramD_enable);
+                                    $display("   Data_Mem_RW %b", pplr3_ramD_RW);
+                                    $display("   Data_Mem_Mode %b", pplr3_ramD_mode);
+                                $display("WB");
+                                    $display("   Load_instr %b", pplr4_load_inst);
+                                    $display("   RF_Enable %b", pplr4_RF_enable);
                             
-                            #5 global_clk = 1'b0;
+                                end
+                            //=================================================================================*/
+                    /*PHASE 4 REQUIRED OUTPUTS====================================================================*
+                            $display("\n\nPC: %d\nData Address: %h\nR1: %b\nR2: %b\nR3: %b\nR5: %b",
+                            regfile_pc_out, pplr3_ramD_data, rf1.data[1], rf1.data[2], rf1.data[3], rf1.data[5]);
+                        end         
+                        //PRINT DATA MEMORY CONTENTS
+                        #5 index = 0;
+                        $display("\n\nData RAM:");
+                        while(index < regfile_pc_out)
+                        begin
+                            $display("%b %b %b %b", ramD.Mem[index], ramD.Mem[index+1], ramD.Mem[index+2], ramD.Mem[index+3]);
+                            index = index+4;
                         end
+                        $display("\n");
+                    //============================================================================================*/
                 end
+                
 endmodule

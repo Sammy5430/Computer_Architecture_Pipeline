@@ -213,7 +213,7 @@ registers R14 (data[14], datain, enables[15-14], clk, clr);
  adder4 pcadder(addedPCin, PCIN, 32'd4, clk);
 // mux2x1 pcmux(chosenData, LE_PC, datain, addedPCin);
 
-
+registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
 //assign PCout  = tempPCvalue;
 always @ (PCIN , !resetPC, posedge clk)
     if(ddata == 4'd15)
@@ -233,8 +233,8 @@ always @ (PCIN , !resetPC, posedge clk)
           end
    
 
-registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
-assign PCout  = tempPCvalue;
+// registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
+//assign PCout  = tempPCvalue;
 
 // //reseting pc
 // always @ (resetPC)
@@ -384,7 +384,6 @@ join
 // $display("this is register info out: %h", register_file.data14);
 // $display("this is register info out: %h", register_file.data15);
 
-
 //$display("this is data[0]: %b" , register_file.data[0]);
 // $display("this is register info out: %h", register_file.data0);
 // $display("this is register info in: %h", register_file.datain);
@@ -399,25 +398,26 @@ initial begin
 // $display("select2M: %b", s2);
 // $display("select3M: %b", s3);
 
+
 #10
-$display("tempPCld: %d", register_file.tempPCld);
+$monitor("tempPCld: %d", register_file.tempPCld);
 #10
-$display("LE_PC: %d", register_file.LE_PC);
+$monitor("LE_PC: %d", register_file.LE_PC);
 #10
-$display("PCIN: %d", register_file.PCIN);
+$monitor("PCIN: %d", register_file.PCIN);
 #10
-$display("PCIN+4: %d", register_file.addedPCin);
+$monitor("PCIN+4: %d", register_file.addedPCin);
 #10
-$display("tempPCvalue: %d", register_file.tempPCvalue);
+$monitor("tempPCvalue: %d", register_file.tempPCvalue);
 #10
-$display("PCOUT: %d", register_file.PCout);
+$monitor("PCOUT: %d", register_file.PCout);
 #10
 $monitor("PCOUT: %d", PCout);
 #10
 
 
 
-$display("Output1: %h", O1);
+$monitor("Output1: %h", O1);
 #10
 $monitor("Output2 %h", O2);
 #10
