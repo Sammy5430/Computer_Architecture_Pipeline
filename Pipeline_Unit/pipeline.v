@@ -418,7 +418,7 @@ module shifter (output reg[31:0] OUT, output reg shifter_carry_out, input [31:0]
 		endcase
 endmodule
 
-module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out, clk);
+module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, input [3:0] OP, input C_in, shifter_carry_out);
     // A = Rn
     // B = shifter_operand
     // O = Rd
@@ -427,7 +427,7 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
     // Flag[2] = Z(Zero)
     // Flag[3] = N(Negative)
 	// CondCode ARM Manual Section A2.5.2
-    always@(posedge clk)
+    always@(OP,A,B)
     begin
         case(OP)
                                                         //                                   Status CondCode  ARM Manual
@@ -537,7 +537,7 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
                       CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
             endcase
-        $monitor("\n-------------\nALU Out: %b\n-------------", O);
+        $monitor("\n-------------\nALU Out: %b\nA: %b\nB: %b\n-------------", O, A, B);
     end
 endmodule
 
@@ -1859,7 +1859,7 @@ module pipelinePU;
         shifter shifter1(shifter1_out, shifter1_carry_out, pplr2_shift_RM, pplr2_shifter_L, pplr2_shift_mode, flag_reg1_c_in);        
         mux2x1_32 mux6(mux6_out, pplr2_shift_imm, pplr2_shift_RM, shifter1_out);
         mux2x1_1 mux7(mux7_out, pplr2_shift_imm, 1'b0, shifter1_carry_out);
-        alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out, global_clk);
+        alu alu1(alu1_out, alu1_cc, pplr2_alu_A, mux6_out, pplr2_ALU_op, flag_reg1_c_in, shifter1_carry_out);
         flagregister flag_reg1(flag_reg1_out, flag_reg1_c_in, alu1_cc, pplr2_flag_reg_S, sys_reset);
         pipeline_registers_3 pplr3(pplr3_ramD_address, pplr3_ramD_data, pplr3_RD, pplr3_ramD_mode, pplr3_load_inst,
         pplr3_RF_enable, pplr3_ramD_enable, pplr3_ramD_RW, global_clk, sys_reset, alu1_out, pplr2_ramD_data, pplr2_RD,
@@ -1927,7 +1927,7 @@ module pipelinePU;
                         begin
                             #20 global_clk = 1'b1;
                             #20 global_clk = 1'b0;
-                            /*PHASE 3 REQUIRED OUTPUTS=========================================================*/
+                            /*PHASE 3 REQUIRED OUTPUTS=========================================================*
                                 $display("\n");
                                 $display("PC %d", regfile_pc_out);
                                 $display("Instruction: %b", ramI_out);
@@ -1957,11 +1957,11 @@ module pipelinePU;
                                     $display("   Data_Mem_Mode %b", pplr3_ramD_mode);
                                 $display("WB");
                                     $display("   Load_instr %b", pplr4_load_inst);
-                                    $display("   RF_Enable %b", pplr4_RF_enable);
+                                    $display("   RF_Enable %b\n", pplr4_RF_enable);
                             
                                 end
                             //=================================================================================*/
-                    /*PHASE 4 REQUIRED OUTPUTS====================================================================*
+                    /*PHASE 4 REQUIRED OUTPUTS====================================================================*/
                             $display("\n\nPC: %d\nData Address: %h\nR1: %b\nR2: %b\nR3: %b\nR5: %b",
                             regfile_pc_out, pplr3_ramD_data, rf1.data[1], rf1.data[2], rf1.data[3], rf1.data[5]);
                         end         
@@ -1976,5 +1976,4 @@ module pipelinePU;
                         $display("\n");
                     //============================================================================================*/
                 end
-                
 endmodule
