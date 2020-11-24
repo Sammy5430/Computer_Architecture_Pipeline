@@ -1,8 +1,25 @@
-module instRAM256x8 (output reg [31:0] DataOut, input Enable, input[31:0] Address);
+//Input address is always even and a multiple of four, therefore
+//the two least significant bits must be converted to 00
+
+module instRAM256x8 (output reg [31:0] DataOut, input[31:0] Address);
     reg[7:0] Mem[0:255];
-    always@(Enable) 
-        if(Enable)
-            DataOut = Mem[Address];
+    reg[31:0] temp;
+    always@(Address)
+        begin
+            if(Address > 255)
+                $display("Invalid address. Address must be between 0 and 255.");
+            else
+                begin
+                    temp = Address & 32'hfffffffc;
+                    DataOut = Mem[temp];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+1];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+2];
+                    DataOut = DataOut << 8;
+                    DataOut = DataOut + Mem[temp+3];
+                end
+        end
 endmodule
 
 
@@ -10,6 +27,7 @@ module dataRAM256x8 (output reg [31:0] DataOut, input Enable, ReadWrite,
 input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
     reg[7:0] Mem[0:255];
     reg[31:0] temp;
+    //FIX: Declare DataIn Address, and other inputs
     always@(Enable, ReadWrite)
         if(Enable)
             if(!ReadWrite)//read
@@ -91,11 +109,11 @@ module testInstRAM;
 //Pre-charge//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     integer I_inFile, I_code;
-    reg I_Enable;
+    // reg I_Enable;
     reg [7:0] data;
     reg [31:0] I_Address;
     wire [31:0] I_DataOut;
-    instRAM256x8 ramI(I_DataOut, I_Enable, I_Address);
+    instRAM256x8 ramI(I_DataOut, I_Address);
     initial
         begin
             I_inFile = $fopen("PF1_Gonzalez_Ortiz_Samuel_ramintr.txt","r");
@@ -112,19 +130,19 @@ module testInstRAM;
                 end
             $fclose(I_inFile);
         end
-    initial
-        begin
-            I_Enable = 1'b0;
-            repeat (16)
-                begin
-                    #5 I_Enable = 1'b1;
-                    #5 I_Enable = 1'b0;
-                end
-        end  
+    // initial
+    //     begin
+    //         I_Enable = 1'b0;
+    //         repeat (16)
+    //             begin
+    //                 #5 I_Enable = 1'b1;
+    //                 #5 I_Enable = 1'b0;
+    //             end
+    //     end  
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////
-//Test//
+//Test// FIX: print out words, not bytes
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     initial
         begin
@@ -132,12 +150,12 @@ module testInstRAM;
             $display("");
             $display("Testing Instruction RAM:");
             $display("        Address   Data");
-            I_Enable = 1'b0;
+            // I_Enable = 1'b0;
             I_Address = 32'b0;
             repeat (16)
                 begin
-                    #5 I_Enable = 1'b1;
-                    #5 I_Enable = 1'b0;
+                    #5 //I_Enable = 1'b1;
+                    #5 //I_Enable = 1'b0;
                     $display("%d        %h", I_Address, I_DataOut);
                     I_Address = I_Address + 1;
                 end
@@ -278,11 +296,11 @@ module testDataRAM;
             D_Enable = 1'b0;
             D_ReadWrite = 1'b0;
             D_Mode = 2'b10;
-            D_Address = 32'b100;
+            D_Address = 32'b00;
                 #5 D_Enable = 1'b1;
                 #5 D_Enable = 1'b0;
                 $display("%d        %b     %h        %h", D_Address, D_ReadWrite, D_DataIn, D_DataOut);
-            D_Address = 32'b1000;
+            D_Address = 32'b100;
                 #5 D_Enable = 1'b1;
                 #5 D_Enable = 1'b0;
                 $display("%d        %b     %h        %h", D_Address, D_ReadWrite, D_DataIn, D_DataOut);
