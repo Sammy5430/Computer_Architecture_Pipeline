@@ -49,16 +49,21 @@ endmodule
 
 module registers(output reg [31:0] out, input [31:0] in, input lde, clk, clr);
     //lde = loadEnable
+	reg [31:0] temp_out;
 
     always@ (posedge clk)
     begin
-        // if (!clr||!lde) 
-        //     out <= 32'h00000000; 
-        // else 
+        if (!clr) 
+            temp_out = 32'h00000000; 
+        else 
         if (lde) 
-            out <= in;
+            temp_out = in;
     end
-
+	always@ (negedge clk)
+	begin
+		out = temp_out;
+	end
+	
 endmodule
 
 module registerfile (output [31:0] O1, O2, O3, PCout, input clk, lde, clr, LE_PC, resetPC, input [3:0] s1,s2,s3, ddata, 
@@ -66,38 +71,37 @@ input [31:0] datain, PCIN);
     //Stating the wires
     wire [31:0] data [15:0];// data register output to connect to the multiplexers 
     wire [15:0] enables; // transfering the activation from the decoder to the registers
-    // wire [31:0] addedPCin; //from adder to mux2x1
-    wire [31:0] chosenData;//mux to register 15
 
-    reg [31:0] tempPCvalue, R15out;
+    reg [31:0] tempPCvalue;
     reg tempPCld;
-    reg [3:0] tempLDEB;
 
     //Connecting the Modules
     binaryDecoder Bdecoder(enables, lde, ddata);//Binary decoder
-    //binaryDecoder Bdecoder(en0, en1, en2, en3, en4, en5, en6, en7, en8, en9, en10, en11, en12, en13, en14, en15, lde, ddata);//Binary decoder
 
     //15 registers
-    registers R0 (data[0], datain, enables[15-0], clk, clr);
-    registers R1 (data[1], datain, enables[15-1], clk, clr);
-    registers R2 (data[2], datain, enables[15-2], clk, clr);
-    registers R3 (data[3], datain, enables[15-3], clk, clr);
-    registers R4 (data[4], datain, enables[15-4], clk, clr);
-    registers R5 (data[5], datain, enables[15-5], clk, clr);
-    registers R6 (data[6], datain, enables[15-6], clk, clr);
-    registers R7 (data[7], datain, enables[15-7], clk, clr);
-    registers R8 (data[8], datain, enables[15-8], clk, clr);
-    registers R9 (data[9], datain, enables[15-9], clk, clr);
-    registers R10 (data[10], datain, enables[15-10], clk, clr);
-    registers R11 (data[11], datain, enables[15-11], clk, clr);
-    registers R12 (data[12], datain, enables[15-12], clk, clr);
-    registers R13 (data[13], datain, enables[15-13], clk, clr);
-    registers R14 (data[14], datain, enables[15-14], clk, clr);
+    registers R0 (data[0], datain, enables[15], clk, clr);
+    registers R1 (data[1], datain, enables[14], clk, clr);
+    registers R2 (data[2], datain, enables[13], clk, clr);
+    registers R3 (data[3], datain, enables[12], clk, clr);
+    registers R4 (data[4], datain, enables[11], clk, clr);
+    registers R5 (data[5], datain, enables[10], clk, clr);
+    registers R6 (data[6], datain, enables[9], clk, clr);
+    registers R7 (data[7], datain, enables[8], clk, clr);
+    registers R8 (data[8], datain, enables[7], clk, clr);
+    registers R9 (data[9], datain, enables[6], clk, clr);
+    registers R10 (data[10], datain, enables[5], clk, clr);
+    registers R11 (data[11], datain, enables[4], clk, clr);
+    registers R12 (data[12], datain, enables[3], clk, clr);
+    registers R13 (data[13], datain, enables[2], clk, clr);
+    registers R14 (data[14], datain, enables[1], clk, clr);
+
+	//initialize register in 0
 
     //PC
     registers R15 (PCout, tempPCvalue, tempPCld, clk, clr);// decision done
     always @ (resetPC, posedge clk)
     begin
+		
         if(resetPC)
             begin
                 tempPCvalue = 32'd0;
@@ -119,10 +123,11 @@ input [31:0] datain, PCIN);
     mux16x1 muxO1(O1, s1, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
     mux16x1 muxO2(O2, s2, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
     mux16x1 muxO3(O3, s3, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], PCout);
+	
 endmodule
 
 module flagregister(output reg [3:0] CC_out, output reg C_in, input [3:0] CC_in, input s, reset);
-    always@ (s, reset)
+    always@ (CC_in, s, reset)
         begin
             if (reset) 
                 begin
@@ -166,6 +171,8 @@ input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
     reg[31:0] temp;
     //FIX: Declare DataIn Address, and other inputs
     always@(Enable, ReadWrite)
+	begin
+	// $display("Data Memory Address: %b", Address);
         if(Enable)
             if(!ReadWrite)//read
                 case(Mode)
@@ -238,6 +245,7 @@ input[31:0] Address, input [31:0] DataIn, input [1:0] Mode);
                             //do nothing
                         end
                 endcase
+	end
 endmodule
 
 module mux2x1_1 (output reg DataOut, input s, A, B);
@@ -427,7 +435,7 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
     // Flag[2] = Z(Zero)
     // Flag[3] = N(Negative)
 	// CondCode ARM Manual Section A2.5.2
-    always@(OP,A,B)
+    always@(OP, A, B, shifter_carry_out, C_in)
     begin
         case(OP)
                                                         //                                   Status CondCode  ARM Manual
@@ -536,8 +544,16 @@ module alu (output reg [31:0] O, output reg [3:0] CondCode, input [31:0] A, B, i
                       CondCode[2] = !O;                    // Z Flag Update
                       CondCode[1] = shifter_carry_out;     // C Flag Update
                     end
+			default:
+				begin
+					O = 0;                        // Save Operation
+					CondCode[3] = 0;                 // N Flag Update
+					CondCode[2] = 0;                    // Z Flag Update
+					CondCode[1] = 0;     // C Flag Update
+				end
             endcase
-        $monitor("\n-------------\nALU Out: %b\nA: %b\nB: %b\n-------------", O, A, B);
+		$display("OP ALU IN: %b", OP);
+        // $monitor("\n-------------\nALU Out: %b\nA: %b\nB: %b\n-------------", O, A, B);
     end
 endmodule
 
@@ -554,7 +570,20 @@ input [31:0] IR, input Cond, reset);
 	*/
 	always @ (Cond, IR, reset)
 		begin
-		if (IR == 32'h00000000||!Cond||reset)//NOP
+		if (reset||!Cond)//NOP
+		begin
+			OP <= 4'b0000;
+			Sm <= 2'b00;
+			Mm <= 2'b00;
+			ID_load_instr <= 1'b0; 
+			ID_B <= 1'b0;
+			ID_RF <= 1'b0; 
+			ID_RW <= 1'b0; 
+			ID_Data <= 1'b0;
+			ID_shift_imm <= 1'b0;
+			ID_RF_clear<=1'b0;
+		end
+		if (IR == 32'h00000000)//NOP
 			begin
 				OP <= 4'b0000;
 				Sm <= 2'b00;
@@ -844,7 +873,7 @@ input [31:0] IR, input Cond, reset);
 				ID_RW <= 1'b0; 
 				ID_Data <= 1'b0;
 				ID_shift_imm <= 1'b0;
-				ID_RF_clear<=1'b0;
+				ID_RF_clear<=1'b1;	//should be 0?
 			end	
 		else //Instruction not found
 			begin
@@ -857,7 +886,7 @@ input [31:0] IR, input Cond, reset);
 				ID_RW <= 1'b0; 
 				ID_Data <= 1'b0;
 				ID_shift_imm <= 1'b0;
-				ID_RF_clear<=1'b0;
+				ID_RF_clear<=1'b1;	//should be 0?
 			end
 		end
 endmodule	
@@ -868,7 +897,7 @@ module condition_handler(output reg Cond_true, B, L, input[3:0] CC, CI, input ID
 		begin
             if(reset)
                 begin
-                    B<=1;
+                    B<=0;
                     L<=0;
                     Cond_true<=1;
                 end
@@ -1065,8 +1094,9 @@ endmodule
 
 //WITH ADDED RESET
 module hazard_forwarding_unit(output reg[1:0] Data_Forw_PA, Data_Forw_PB, Data_Forw_PD, 
-output reg NOP, LE_IF_ID, LE_PC, input[3:0] ID_Rn, ID_Rm, ID_Rd, EX_Rd, MEM_Rd, WB_Rd, 
-input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
+output reg NOP, LE_IF_ID, LE_PC, 
+input[3:0] ID_Rn, ID_Rm, ID_Rd, EX_Rd, MEM_Rd, WB_Rd, 
+input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset, SR);
 	always @ (ID_Rn, ID_Rm, EX_Rd, MEM_Rd, WB_Rd, EX_RF_enable,MEM_RF_enable,WB_Rd, EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset)
 	begin
 		if(reset)
@@ -1085,7 +1115,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b01;
 						Data_Forw_PB<=2'b01;
 						Data_Forw_PD<=2'b01;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1103,7 +1133,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b01;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b01;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1121,7 +1151,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b01;
 						Data_Forw_PD<=2'b01;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1139,7 +1169,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b01;
 						Data_Forw_PB<=2'b01;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1157,7 +1187,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b01;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1175,7 +1205,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b01;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1193,7 +1223,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b01;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1214,7 +1244,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b10;
 						Data_Forw_PB<=2'b10;
 						Data_Forw_PD<=2'b10;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1232,7 +1262,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b10;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b10;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1250,7 +1280,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b10;
 						Data_Forw_PD<=2'b10;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1268,7 +1298,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b10;
 						Data_Forw_PB<=2'b10;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1286,7 +1316,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b10;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1304,7 +1334,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b10;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1322,7 +1352,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b10;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1343,7 +1373,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b11;
 						Data_Forw_PB<=2'b11;
 						Data_Forw_PD<=2'b11;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1361,7 +1391,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b11;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b11;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1379,7 +1409,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b11;
 						Data_Forw_PD<=2'b11;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1397,7 +1427,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b11;
 						Data_Forw_PB<=2'b11;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1415,7 +1445,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b11;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1433,7 +1463,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b11;
 						Data_Forw_PD<=2'b00;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1451,7 +1481,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 						Data_Forw_PA<=2'b00;
 						Data_Forw_PB<=2'b00;
 						Data_Forw_PD<=2'b11;
-						if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+						if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 							begin
 								NOP<=1'b0;
 								LE_IF_ID<=1'b0;
@@ -1470,7 +1500,7 @@ input EX_RF_enable,MEM_RF_enable,WB_RF_enable, EX_load_instr, reset);
 				Data_Forw_PA<=2'b00;
 				Data_Forw_PB<=2'b00;
 				Data_Forw_PD<=2'b00;
-				if(EX_load_instr&&(ID_Rn==EX_Rd||ID_Rm==EX_Rd))
+				if(EX_load_instr&&(ID_Rn==EX_Rd||(ID_Rm==EX_Rd&&SR==1'b1)))
 					begin
 						NOP<=1'b0;
 						LE_IF_ID<=1'b0;
@@ -1489,7 +1519,7 @@ endmodule
 //IF/ID register
 module pipeline_registers_1 (output reg [31:0] PCAdressOut, PCNextout, toCPU, output reg [3:0] toConditionH, 
 output reg [23:0] toSignextender, output reg bitToCondition, output reg [3:0] RA, output reg [3:0] RB, output reg [3:0] RD, 
-output reg LinkOut, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn, reset,  
+output reg LinkOut, HazardForwardingBit, output reg [11:0] directTonextregister, output reg oneBitToNextRegister, input clk, LD, LinkIn, reset,  
 input [31:0] InInstructionMEM, InPCAdress, INNextPC);
 
     reg [31:0] temp;
@@ -1550,15 +1580,19 @@ input [31:0] InInstructionMEM, InPCAdress, INNextPC);
 
                 temp = InInstructionMEM & 32'b00000000000100000000000000000000;
                 oneBitToNextRegister = temp >> 20;
+
+				temp = InInstructionMEM & 32'b00000010000000000000000000000000;
+ 				HazardForwardingBit = temp >> 25;
             end
     end
+	
 endmodule
 
 //ID/EX register
 module pipeline_registers_2(output reg [31:0] directRegister, aluConnection, shiftExtender, output reg [11:0] LelevenShift, 
-output reg singleBitOut, shift_imm,EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, 
+output reg singleBitOut, shift_imm, EXloadInst, EXRFEnable, NextReg1, NextReg2,  output reg [3:0] outRDBits, OP, 
 output reg [1:0] NextReg2Bit, Msignal, input [11:0] bitsFromPRegister, input [3:0] RDBits, input clk, singleBit, reset2, 
-input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
+input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals);
 
     reg [31:0] temp_directRegister, temp_aluConnection, temp_shiftExtender;
     reg [11:0] temp_LelevenShift;
@@ -1568,7 +1602,7 @@ input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
 
     //temp variable
     reg [31:0] temp;
-    always @(posedge clk)// Same as before
+    always @(posedge clk)
     begin
         if(reset2)
             begin
@@ -1589,9 +1623,9 @@ input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
             end
         else
             begin
-                temp_directRegister = outMux1;
-                temp_aluConnection = outMux2;
-                temp_shiftExtender = outMux3;
+                temp_directRegister = outMux3;
+                temp_aluConnection = outMux1;
+                temp_shiftExtender = outMux2;
                 temp_singleBitOut = singleBit;
                 temp_outRDBits = RDBits;
                 temp_LelevenShift = bitsFromPRegister;
@@ -1601,6 +1635,7 @@ input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
 
                 temp = muxSignals & 32'b00000000000000000000111100000000;
                 temp_OP = temp >> 8 ;
+				$display("temp_OP: %b", temp_OP);
                 
                 temp = muxSignals & 32'b00000000000000000000000010000000;
                 temp_EXloadInst = temp >> 7;
@@ -1631,6 +1666,7 @@ input [31:0] outMux1, outMux2, outMux3, input [12:0] muxSignals );
         LelevenShift = temp_LelevenShift;
         shift_imm = temp_shift_imm;
         OP = temp_OP;
+		$display("out OP: %b", OP);
         EXloadInst = temp_EXloadInst;
         EXRFEnable = temp_EXRFEnable;
         NextReg1 = temp_NextReg1;
@@ -1753,6 +1789,7 @@ module pipelinePU;
         wire [3:0] pplr1_RD;
         wire [11:0] pplr1_shifter_L;
         wire pplr1_flag_reg_S;
+		wire pplr1_hzd_fwd_SR;
     //ID variables
         wire [31:0] adder2_out;
         wire [31:0] mux2_out;
@@ -1837,7 +1874,7 @@ module pipelinePU;
         adder adder1(adder1_out, regfile_pc_out, 32'h04, global_clk);
         instRAM256x8 ramI(ramI_out, regfile_pc_out, global_clk);
         pipeline_registers_1 pplr1(pplr1_out, pplr1_pc_out, pplr1_cpu_sig, pplr1_cond_in, pplr1_extender_in,
-        pplr1_cond_IR_L, pplr1_RA, pplr1_RB, pplr1_RD, pplr1_linkout, pplr1_shifter_L, pplr1_flag_reg_S, global_clk, 
+        pplr1_cond_IR_L, pplr1_RA, pplr1_RB, pplr1_RD, pplr1_linkout, pplr1_hzd_fwd_SR, pplr1_shifter_L, pplr1_flag_reg_S, global_clk, 
         hzd_fwd_LE_IF, cond_handler_L, sys_reset, ramI_out, mux1_out, adder1_out);
 
     //Instruction Decode
@@ -1881,24 +1918,26 @@ module pipelinePU;
     //Hazard/Forwarding
         hazard_forwarding_unit hzd_fwd_u1(hzd_fwd_fwd_PA, hzd_fwd_fwd_PB, hzd_fwd_fwd_PD, hzd_fwd_NOP, hzd_fwd_LE_IF, hzd_fwd_LE_PC,
         pplr1_RA, pplr1_RB, pplr1_RD, pplr2_RD, pplr3_RD, pplr4_RD, pplr2_RF_enable, 
-        pplr3_RF_enable, pplr4_RF_enable, pplr2_load_inst, sys_reset);
+        pplr3_RF_enable, pplr4_RF_enable, pplr2_load_inst, sys_reset, pplr1_hzd_fwd_SR);
 
     //Control Unit
         cpu2 controlUnit1(cpu_OP, cpu_Shift_Mode, cpu_Mem_Mode, cpu_ID_load_instr, cpu_ID_B, cpu_ID_RF, cpu_ID_RW, cpu_ID_Data_Mem_Enable,
         cpu_ID_shift_imm, cpu_ID_RF_clear, pplr1_cpu_sig, cond_handler_cond, sys_reset);
 
     //TEST PIPELINE UNIT
-        //Pre-Charge
+        //Pre-Charge Instruction RAM
             integer I_inFile, I_code, index;
             reg [31:0] I_Address;
             reg [7:0] data;
+			integer repetition;
             initial
                 begin
-                    I_inFile = $fopen("ramintr.txt","r");
-                    //I_inFile = $fopen("testcode_arm_ppu_1.txt","r");
-                    //I_inFile = $fopen("prueba_profe_2.txt","r");
-                    //I_inFile = $fopen("prueba_profe_3.txt","r");
+                    //I_inFile = $fopen("ramintr.txt","r");
+                    I_inFile = $fopen("testcode_arm_ppu_1.txt","r");
+                    //I_inFile = $fopen("testcode_arm_ppu_2.txt","r");
+                    //I_inFile = $fopen("testcode_arm_ppu_3.txt","r");
                     
+					repetition = 0;
                     I_Address = 32'b0;
                     $display("");
                     $display("Instruction RAM was precharged with the following data:");
@@ -1909,12 +1948,39 @@ module pipelinePU;
                             ramI.Mem[I_Address] = data;
                             $display("%d        %b", I_Address, data);
                             I_Address = I_Address + 1; 
+							repetition = repetition + 1;
                         end
                     $fclose(I_inFile);
+					repetition = repetition/4;
                 end
-        //Tester        
+        //Pre-Charge Data RAM
+		integer D_inFile, D_code;
+		reg [31:0] D_Address;
+		initial
+			begin
+				#200; //wait for Instruction RAM Initialization to end (used only for precharge prints)
+				//D_inFile = $fopen("ramintr.txt","r");
+				D_inFile = $fopen("testcode_arm_ppu_1.txt","r");
+				//D_inFile = $fopen("testcode_arm_ppu_2.txt","r");
+				//D_inFile = $fopen("testcode_arm_ppu_3.txt","r");
+
+				D_Address = 32'b0;
+				$display("");
+				$display("Data RAM was precharged with the following data:");
+				$display("        Address   Data");
+				while(!$feof(D_inFile))
+					begin
+						D_code = $fscanf(D_inFile, "%b", data);
+						ramD.Mem[D_Address] = data;
+						$display("%d        %b", D_Address, ramD.Mem[D_Address]);
+						D_Address = D_Address + 1; 
+					end
+				$fclose(D_inFile);
+			end
+		//Tester        
             initial
                 begin
+					#400
                     $display("\n");
                     $display("Testing Pipeline Unit:");
                     global_clk = 1'b0;
@@ -1923,10 +1989,21 @@ module pipelinePU;
                     #5 global_clk = 1'b0;
                     sys_reset = 1'b0;
 
-                    repeat (9)
+                    repeat (repetition + 2)
                         begin
-                            #20 global_clk = 1'b1;
-                            #20 global_clk = 1'b0;
+                            #5 global_clk = 1'b1;
+                            #5 global_clk = 1'b0;
+							$display("\n");
+                                // $display("PC %d", regfile_pc_out);
+                                // $display("Instruction: %b", ramI_out);
+                                // $display("ID");
+								
+								// 	$display("   RF_Pa: %b", regfile_out_1);
+								// 	$display("   RF_Pb: %b", regfile_out_2);
+								// 	$display("   RF_Pd: %b", regfile_out_3);
+								// 	$display("   Mux_a: %b", mux2_out);
+								// 	$display("   Mux_b: %b", mux3_out);
+								// 	$display("   Mux_d: %b", mux4_out);
                             /*PHASE 3 REQUIRED OUTPUTS=========================================================*
                                 $display("\n");
                                 $display("PC %d", regfile_pc_out);
@@ -1962,18 +2039,23 @@ module pipelinePU;
                                 end
                             //=================================================================================*/
                     /*PHASE 4 REQUIRED OUTPUTS====================================================================*/
-                            $display("\n\nPC: %d\nData Address: %h\nR1: %b\nR2: %b\nR3: %b\nR5: %b",
-                            regfile_pc_out, pplr3_ramD_data, rf1.data[1], rf1.data[2], rf1.data[3], rf1.data[5]);
+                            $monitor("PC:%d  Data Address:%d  R1:%d  R2:%d  R3:%d  R5:%d\nALU IN A: %d\nALU IN B: %d\nALU OUT: %d\nALU OPCODE: %d\nMux_PA:%d\nMux_PB:%d\n MuxA_in1: %d\n MuxA_in2: %d\n MuxA_in3: %d\n MuxA_in4: %d\nHzrd Fwd sel A: %d\n\n",
+                            regfile_pc_out, pplr3_ramD_data, rf1.data[1], rf1.data[2], rf1.data[3], rf1.data[5], mux2_out, mux3_out, pplr2_alu_A, mux6_out, alu1_out,
+							regfile_out_1, alu1_out, pplr2_ALU_op, mux8_out, mux9_out,hzd_fwd_fwd_PA);
+							
+							// $monitor("PC:%d  Data Address:%d  R1:%d  R2:%d  R3:%d  R5:%d",
+                            // regfile_pc_out, pplr3_ramD_data, rf1.data[1], rf1.data[2], rf1.data[3], rf1.data[5]);
                         end         
                         //PRINT DATA MEMORY CONTENTS
                         #5 index = 0;
                         $display("\n\nData RAM:");
-                        while(index < regfile_pc_out)
+                        while(index < 256)
                         begin
                             $display("%b %b %b %b", ramD.Mem[index], ramD.Mem[index+1], ramD.Mem[index+2], ramD.Mem[index+3]);
                             index = index+4;
                         end
-                        $display("\n");
+                        #5 $display("\n");
                     //============================================================================================*/
+						// end
                 end
 endmodule
